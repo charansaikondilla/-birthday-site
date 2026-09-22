@@ -1,0 +1,21 @@
+/* =====================================================================
+   CLOUD CONFIG — paste your Worker URL here to go live.
+   Leave it blank and the site runs in DEMO MODE: gifts + uploads are
+   stored only in this one browser (great for testing, but a second phone
+   won't see the same gift). No errors either way.
+   ===================================================================== */
+window.CLOUD = {
+  // Follow worker/README.md (free, ~10 minutes, no credit card) to deploy the
+  // included Cloudflare Worker, then paste the URL it gives you here, e.g.
+  // 'https://birthday-gift-api.yoursubdomain.workers.dev'
+  WORKER_URL: '',
+
+  // Optional: a Stripe "Payment Link" (Stripe Dashboard → Payment Links → +New,
+  // no code needed). Paste the checkout URL it gives you. Leave blank to show
+  // a friendly "not set up yet" message instead of a broken button.
+  STRIPE_PAYMENT_LINK: '',
+
+  // How many days a gift's uploads live before they're deleted. Keep this the
+  // same as TRIAL_DAYS in worker/wrangler.toml.
+  TRIAL_DAYS: 7,
+};

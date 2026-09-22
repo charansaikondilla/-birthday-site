@@ -1,0 +1,172 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#000000">
+  <meta name="robots" content="noindex,nofollow">
+  <title>Add your photos &amp; videos</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 11 20'%3E%3Crect width='11' height='20' fill='%23000'/%3E%3Cpath d='M0 0h3.3v20H0z' fill='%23e50914'/%3E%3Cpath d='M7.7 0H11v20H7.7z' fill='%23e50914'/%3E%3Cpath d='M0 0h3.3L11 20H7.7z' fill='%23b1060f'/%3E%3C/svg%3E">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&family=Caveat:wght@700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+  <script src="cloud-config.js"></script>
+  <script src="gift-store.js"></script>
+  <style>
+    .gu-page { position: relative; min-height: 100%; height: auto; overflow-y: auto; display: block; padding: clamp(20px,4vh,50px) 18px 60px; }
+    .gu-wrap { max-width: 640px; margin: 0 auto; }
+    .gu-brand { display: flex; align-items: center; gap: 10px; margin-bottom: 18px; }
+    .gu-brand .n-mini { margin: 0; }
+    .gu-brand span { font-weight: 800; font-size: 18px; }
+    .gu-head h1 { font-family: var(--hand); font-size: clamp(30px,6vw,44px); margin: 0 0 6px; line-height: 1.1; }
+    .gu-head p { color: #bbb; font-size: 13.5px; margin: 0 0 6px; line-height: 1.55; }
+    .gu-badge { display: inline-flex; align-items: center; gap: 7px; font-size: 12px; font-weight: 700; color: #ffc107; background: #201a08; border: 1px solid #4a3b0f; padding: 6px 12px; border-radius: 999px; margin: 6px 0 22px; }
+    .gu-badge.is-expired { color: #ff7b7b; background: #200808; border-color: #4a1818; }
+    .gu-drop { border: 2px dashed #3a3a3a; border-radius: 12px; padding: clamp(26px,6vw,44px) 20px; text-align: center; cursor: pointer; transition: border-color .15s, background .15s; margin-bottom: 18px; }
+    .gu-drop:hover, .gu-drop.is-over { border-color: #e50914; background: rgba(229,9,20,.06); }
+    .gu-drop svg { width: 34px; height: 34px; margin: 0 auto 12px; stroke: #999; fill: none; stroke-width: 1.6; }
+    .gu-drop b { display: block; font-size: 15px; margin-bottom: 4px; }
+    .gu-drop span { font-size: 12px; color: #888; }
+    .gu-progress { display: none; gap: 10px; align-items: center; font-size: 12.5px; color: #ccc; margin-bottom: 14px; }
+    .gu-progress.is-on { display: flex; }
+    .gu-progress .spin { width: 14px; height: 14px; border-radius: 50%; border: 2px solid #444; border-top-color: #fff; animation: gu-spin .8s linear infinite; flex: 0 0 auto; }
+    @keyframes gu-spin { to { transform: rotate(360deg); } }
+    .gu-error { color: #ff7b7b; font-size: 13px; margin: 0 0 14px; }
+    .gu-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 10px; margin-bottom: 26px; }
+    .gu-tile { position: relative; aspect-ratio: 1; border-radius: 8px; overflow: hidden; background: #141414; border: 1px solid #262626; }
+    .gu-tile img, .gu-tile video { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .gu-tile .gu-badge-kind { position: absolute; left: 5px; top: 5px; font-size: 9px; font-weight: 700; padding: 2px 5px; border-radius: 3px; background: rgba(0,0,0,.65); }
+    .gu-empty { color: #777; font-size: 13px; text-align: center; padding: 20px 0; grid-column: 1/-1; }
+    .gu-footer-actions { display: flex; flex-wrap: wrap; gap: 10px; }
+    .gu-footer-actions a { flex: 1 1 180px; text-align: center; padding: 13px; border-radius: 6px; font-weight: 700; font-size: 14px; text-decoration: none; }
+    .gu-footer-actions .primary { background: #fff; color: #000; }
+    .gu-footer-actions .primary:hover { background: #ddd; }
+    .gu-footer-actions .ghost { background: transparent; border: 1px solid #3a3a3a; color: #ddd; }
+    .gu-footer-actions .ghost:hover { background: #232323; }
+    .gu-missing { text-align: center; padding: 60px 20px; }
+    .gu-missing h1 { font-family: var(--hand); font-size: clamp(34px,7vw,50px); margin: 0 0 12px; }
+    .gu-missing p { color: #bbb; font-size: 14px; max-width: 44ch; margin: 0 auto 20px; }
+  </style>
+</head>
+<body>
+  <div class="screen gu-page">
+    <div class="gu-wrap" id="gu-app">
+      <div class="gu-brand"><span class="n-mini" aria-hidden="true"><i></i><i></i><i></i></span><span>Birthday Original</span></div>
+      <div id="gu-loading" style="color:#999;font-size:13px">Loading…</div>
+    </div>
+  </div>
+
+  <input id="gu-file-input" type="file" accept="image/*,video/*" multiple hidden>
+
+  <script>
+    const $ = (s) => document.querySelector(s);
+    const app = $('#gu-app');
+    const params = new URLSearchParams(location.search);
+    const slug = params.get('gift');
+    const MAX_MB = 80;
+
+    function renderMissing(message) {
+      app.innerHTML = `
+        <div class="gu-brand"><span class="n-mini" aria-hidden="true"><i></i><i></i><i></i></span><span>Birthday Original</span></div>
+        <div class="gu-missing">
+          <h1>Hmm, this link isn't right</h1>
+          <p>${message}</p>
+          <a class="gu-footer-actions primary" style="display:inline-block;padding:12px 20px;border-radius:6px;background:#fff;color:#000;text-decoration:none;font-weight:700" href="gift-create.html">Create a new gift instead</a>
+        </div>`;
+    }
+
+    async function renderApp(gift) {
+      const expired = GiftStore.isExpired(gift.createdAt);
+      app.innerHTML = `
+        <div class="gu-brand"><span class="n-mini" aria-hidden="true"><i></i><i></i><i></i></span><span>Birthday Original</span></div>
+        <div class="gu-head">
+          <h1>${gift.name ? `For ${escapeHtml(gift.name)}` : 'Add to this gift'}</h1>
+          <p>Add any photos or videos you'd like on the site. Everyone with this link can add their own — no account needed.</p>
+          <span class="gu-badge ${expired ? 'is-expired' : ''}" id="gu-badge"></span>
+        </div>
+        <div class="gu-drop" id="gu-drop" role="button" tabindex="0">
+          <svg viewBox="0 0 24 24"><path d="M12 16V4M7 9l5-5 5 5"/><path d="M4 16v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/></svg>
+          <b>Tap to choose, or drag photos &amp; videos here</b>
+          <span>Up to ${MAX_MB} MB each · JPG, PNG, HEIC, MP4, MOV…</span>
+        </div>
+        <div class="gu-error" id="gu-error" hidden></div>
+        <div class="gu-progress" id="gu-progress"><span class="spin"></span><span id="gu-progress-text"></span></div>
+        <div class="gu-grid" id="gu-grid"></div>
+        <div class="gu-footer-actions">
+          <a class="primary" href="${GiftStore.viewLinkFor(slug)}" target="_blank" rel="noopener">▶ View the birthday site</a>
+          <a class="ghost" href="gift-create.html">＋ Start a new gift</a>
+        </div>`;
+
+      const paintBadge = () => {
+        const badge = $('#gu-badge');
+        if (!badge) return;
+        const stillExpired = GiftStore.isExpired(gift.createdAt);
+        badge.classList.toggle('is-expired', stillExpired);
+        badge.textContent = stillExpired ? '⏱ This trial has expired — uploads may be removed' : `⏱ Free trial: ${GiftStore.fmtLeft(gift.createdAt)}`;
+      };
+      paintBadge();
+      setInterval(paintBadge, 30000);
+
+      await refreshGrid();
+
+      const drop = $('#gu-drop'), input = $('#gu-file-input');
+      drop.addEventListener('click', () => input.click());
+      drop.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') input.click(); });
+      ['dragover', 'dragenter'].forEach((ev) => drop.addEventListener(ev, (e) => { e.preventDefault(); drop.classList.add('is-over'); }));
+      ['dragleave', 'drop'].forEach((ev) => drop.addEventListener(ev, (e) => { e.preventDefault(); drop.classList.remove('is-over'); }));
+      drop.addEventListener('drop', (e) => handleFiles(e.dataTransfer.files));
+      input.addEventListener('change', () => { handleFiles(input.files); input.value = ''; });
+    }
+
+    function escapeHtml(s) { return String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
+
+    async function refreshGrid() {
+      const grid = $('#gu-grid');
+      grid.innerHTML = '<p class="gu-empty">Loading photos &amp; videos…</p>';
+      try {
+        const media = await GiftStore.listMedia(slug);
+        if (!media.length) { grid.innerHTML = '<p class="gu-empty">Nothing added yet — be the first!</p>'; return; }
+        grid.innerHTML = media.map((m) => `<div class="gu-tile">${
+          m.type.startsWith('video/') ? `<video src="${m.url}" muted playsinline preload="metadata"></video>` : `<img src="${m.url}" alt="" loading="lazy">`
+        }<span class="gu-badge-kind">${m.type.startsWith('video/') ? '🎬' : '🖼'}</span></div>`).join('');
+      } catch (e) {
+        grid.innerHTML = `<p class="gu-empty" style="color:#ff7b7b">Could not load what's already here: ${escapeHtml(e.message)}</p>`;
+      }
+    }
+
+    async function handleFiles(fileList) {
+      const files = [...fileList].filter(Boolean);
+      if (!files.length) return;
+      const err = $('#gu-error'), prog = $('#gu-progress'), progText = $('#gu-progress-text');
+      err.hidden = true;
+      const bad = files.find((f) => !/^(image|video)\//.test(f.type));
+      if (bad) { err.textContent = `"${bad.name}" isn't a photo or a video.`; err.hidden = false; }
+      const tooBig = files.find((f) => f.size > MAX_MB * 1024 * 1024);
+      if (tooBig) { err.textContent = `"${tooBig.name}" is bigger than ${MAX_MB} MB — please use a smaller file.`; err.hidden = false; }
+      const ok = files.filter((f) => /^(image|video)\//.test(f.type) && f.size <= MAX_MB * 1024 * 1024);
+      if (!ok.length) return;
+      prog.classList.add('is-on');
+      let done = 0;
+      for (const file of ok) {
+        progText.textContent = `Uploading ${done + 1} of ${ok.length}…`;
+        try { await GiftStore.addMedia(slug, file); done++; }
+        catch (e) { err.textContent = e.message || 'Upload failed — please try again.'; err.hidden = false; break; }
+      }
+      prog.classList.remove('is-on');
+      await refreshGrid();
+    }
+
+    (async function init() {
+      if (!slug) return renderMissing('This page needs a gift link with a code in it — ask whoever sent it to double-check, or create your own.');
+      try {
+        const gift = await GiftStore.getGift(slug);
+        if (!gift) return renderMissing('We couldn\'t find a gift with this link. It may have been deleted after its trial ended.');
+        await renderApp(gift);
+      } catch (e) {
+        renderMissing('Something went wrong loading this gift: ' + escapeHtml(e.message));
+      }
+    })();
+  </script>
+</body>
+</html>

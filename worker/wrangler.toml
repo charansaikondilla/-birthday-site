@@ -1,0 +1,25 @@
+name = "birthday-gift-api"
+main = "src/index.js"
+compatibility_date = "2024-11-01"
+
+# Filled in by the setup steps in worker/README.md — `wrangler d1 create` and
+# `wrangler r2 bucket create` each print the value that goes here.
+[[d1_databases]]
+binding = "DB"
+database_name = "birthday-gifts"
+database_id = "REPLACE_WITH_YOUR_DATABASE_ID"
+
+[[r2_buckets]]
+binding = "GIFT_MEDIA"
+bucket_name = "gift-media"
+
+[vars]
+# The public URL your R2 bucket serves files from (its "Public Development URL",
+# or your own custom domain once you add one) — see worker/README.md step 4.
+R2_PUBLIC_URL = "REPLACE_WITH_YOUR_R2_PUBLIC_URL"
+# Keep this the same as TRIAL_DAYS in cloud-config.js.
+TRIAL_DAYS = "7"
+
+# Runs the cleanup job daily at 03:00 UTC.
+[triggers]
+crons = ["0 3 * * *"]
