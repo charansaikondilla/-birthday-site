@@ -13,6 +13,7 @@
   <link rel="stylesheet" href="style.css">
   <script src="cloud-config.js"></script>
   <script src="gift-store.js"></script>
+  <!-- No auth check here — anyone with a gift link can add photos & videos -->
   <style>
     .gu-page { position: relative; min-height: 100%; height: auto; overflow-y: auto; display: block; padding: clamp(20px,4vh,50px) 18px 60px; }
     .gu-wrap { max-width: 640px; margin: 0 auto; }
@@ -140,20 +141,35 @@
       if (!files.length) return;
       const err = $('#gu-error'), prog = $('#gu-progress'), progText = $('#gu-progress-text');
       err.hidden = true;
-      const bad = files.find((f) => !/^(image|video)\//.test(f.type));
-      if (bad) { err.textContent = `"${bad.name}" isn't a photo or a video.`; err.hidden = false; }
-      const tooBig = files.find((f) => f.size > MAX_MB * 1024 * 1024);
-      if (tooBig) { err.textContent = `"${tooBig.name}" is bigger than ${MAX_MB} MB — please use a smaller file.`; err.hidden = false; }
+
+      // Validate before uploading anything
+      const errors = [];
+      files.forEach((f) => {
+        if (!/^(image|video)\//.test(f.type)) errors.push(`"${f.name}" isn't a photo or video.`);
+        else if (f.size > MAX_MB * 1024 * 1024) errors.push(`"${f.name}" is over ${MAX_MB} MB.`);
+      });
+      if (errors.length) { err.textContent = errors.join(' '); err.hidden = false; }
+
       const ok = files.filter((f) => /^(image|video)\//.test(f.type) && f.size <= MAX_MB * 1024 * 1024);
       if (!ok.length) return;
+
       prog.classList.add('is-on');
-      let done = 0;
+      let done = 0, failed = 0;
       for (const file of ok) {
-        progText.textContent = `Uploading ${done + 1} of ${ok.length}…`;
-        try { await GiftStore.addMedia(slug, file); done++; }
-        catch (e) { err.textContent = e.message || 'Upload failed — please try again.'; err.hidden = false; break; }
+        progText.textContent = `Uploading ${done + failed + 1} of ${ok.length} — ${file.name}…`;
+        try {
+          await GiftStore.addMedia(slug, file);
+          done++;
+          progText.textContent = `✓ ${done} of ${ok.length} uploaded`;
+        } catch (e) {
+          failed++;
+          err.textContent = e.message || 'Upload failed — please try again.';
+          err.hidden = false;
+          break;
+        }
       }
       prog.classList.remove('is-on');
+      if (done > 0) progText.textContent = `✓ ${done} file${done > 1 ? 's' : ''} added!`;
       await refreshGrid();
     }
 

@@ -1,0 +1,771 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Premiere Birthday Films</title>
+<meta name="description" content="Collect photos and videos from everyone who loves them, and we turn it into a cinematic birthday reel with a title card, a slideshow and scrolling end credits.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:ital,opsz,wght@0,6..96,400;0,6..96,700;0,6..96,900;1,6..96,400&family=Caveat:wght@600;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+/* ============================================================
+   TOKENS — a darkened cinema, lit warm by a projector.
+   Single committed visual world: no light theme by design.
+   ============================================================ */
+:root {
+  color-scheme: dark;
+
+  --ink:       #0B0908;
+  --ink-2:     #141110;
+  --ink-3:     #1D1816;
+  --ink-line:  #2A2320;
+
+  --cream:     #F2EAE0;
+  --cream-dim: #A79C91;
+  --cream-faint: #6E655D;
+
+  --amber:     #E9A845;
+  --amber-deep:#C4832A;
+  --rose:      #E8836F;
+  --red:       #E50914;
+
+  --display: "Bodoni Moda", Didot, "Times New Roman", serif;
+  --sans: Manrope, "Segoe UI", system-ui, -apple-system, sans-serif;
+  --hand: Caveat, "Segoe Print", cursive;
+
+  --pad: clamp(22px, 3.4vw, 34px);
+  --radius: 4px;
+
+  --grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; scroll-behavior: smooth; }
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+
+body {
+  margin: 0;
+  background: var(--ink);
+  color: var(--cream);
+  font-family: var(--sans);
+  font-size: 16.5px;
+  line-height: 1.65;
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+}
+
+img, svg { display: block; max-width: 100%; }
+a { color: inherit; }
+button, input { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--amber); outline-offset: 3px; border-radius: 2px; }
+
+/* ---------- shared layout ---------- */
+.wrap {
+  width: 100%;
+  max-width: 1120px;
+  margin-inline: auto;
+  padding-inline: clamp(16px, 5vw, 40px);
+}
+.section { padding-block: clamp(62px, 9vw, 124px); }
+.section--tight { padding-block: clamp(44px, 6vw, 78px); }
+
+/* ---------- type ---------- */
+.label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .2em;
+  text-transform: uppercase;
+  color: var(--amber);
+  margin: 0;
+}
+h1, h2, h3 { text-wrap: balance; margin: 0; }
+h1 {
+  font-family: var(--display);
+  font-weight: 900;
+  font-size: clamp(42px, 8.6vw, 104px);
+  line-height: .93;
+  letter-spacing: -.02em;
+}
+h2 {
+  font-family: var(--display);
+  font-weight: 700;
+  font-size: clamp(31px, 5vw, 58px);
+  line-height: 1.02;
+  letter-spacing: -.015em;
+}
+h3 { font-size: 19px; font-weight: 700; letter-spacing: -.01em; line-height: 1.3; }
+.lead {
+  font-size: clamp(16.5px, 1.7vw, 20px);
+  line-height: 1.62;
+  color: var(--cream-dim);
+  max-width: 60ch;
+  margin: 0;
+}
+.hand {
+  font-family: var(--hand);
+  font-weight: 600;
+  color: var(--rose);
+  font-size: clamp(25px, 4vw, 44px);
+  line-height: 1.1;
+}
+p { margin: 0; }
+
+/* ---------- buttons ---------- */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  padding: 14px 26px;
+  border-radius: var(--radius);
+  border: 1px solid transparent;
+  font-weight: 700;
+  font-size: 15px;
+  letter-spacing: .01em;
+  text-decoration: none;
+  cursor: pointer;
+  transition: transform .18s ease, background .18s ease, border-color .18s ease, box-shadow .18s ease;
+}
+.btn--primary {
+  background: var(--amber);
+  color: #1A1206;
+  box-shadow: 0 10px 34px -12px rgba(233, 168, 69, .6);
+}
+.btn--primary:hover { background: #F4B75C; transform: translateY(-2px); }
+.btn--ghost { border-color: var(--ink-line); color: var(--cream); background: rgba(255,255,255,.02); }
+.btn--ghost:hover { border-color: var(--cream-faint); background: rgba(255,255,255,.05); transform: translateY(-2px); }
+.btn--sm { padding: 10px 18px; font-size: 13.5px; }
+@media (prefers-reduced-motion: reduce) { .btn:hover { transform: none; } }
+
+/* ---------- film-strip divider ---------- */
+.strip {
+  height: 22px;
+  background:
+    repeating-linear-gradient(90deg,
+      transparent 0 14px,
+      rgba(233,168,69,.16) 14px 24px,
+      transparent 24px 38px),
+    linear-gradient(var(--ink-2), var(--ink-2));
+  border-block: 1px solid var(--ink-line);
+}
+
+/* ============================================================
+   NAV
+   ============================================================ */
+.nav {
+  position: sticky;
+  top: env(safe-area-inset-top, 0px);
+  z-index: 50;
+  background: rgba(11, 9, 8, .78);
+  backdrop-filter: blur(14px);
+  border-bottom: 1px solid transparent;
+  transition: border-color .3s ease, background .3s ease;
+}
+.nav.is-stuck { border-bottom-color: var(--ink-line); background: rgba(11, 9, 8, .94); }
+.nav__in {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  min-height: 68px;
+}
+.brand { display: flex; align-items: center; gap: 11px; text-decoration: none; margin-right: auto; }
+.mark {
+  width: 17px; height: 26px;
+  flex: none;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 2px;
+}
+.mark i { background: var(--red); border-radius: 1px; }
+.mark i:nth-child(2) {
+  background: linear-gradient(170deg, var(--red), #8E050C);
+  scale: 1 .58;
+  transform-origin: center;
+}
+.brand__name {
+  font-family: var(--display);
+  font-weight: 700;
+  font-size: 21px;
+  letter-spacing: .04em;
+}
+.nav__links { display: flex; align-items: center; gap: 26px; }
+.nav__links a {
+  font-size: 14px; font-weight: 600;
+  color: var(--cream-dim);
+  text-decoration: none;
+  transition: color .16s ease;
+}
+.nav__links a:hover { color: var(--cream); }
+@media (max-width: 800px) { .nav__links { display: none; } }
+
+/* ============================================================
+   HERO
+   ============================================================ */
+.hero { position: relative; overflow: hidden; padding-block: clamp(56px, 8vw, 104px) clamp(56px, 8vw, 96px); }
+.hero__glow {
+  position: absolute;
+  top: -42%; left: 50%;
+  translate: -50% 0;
+  width: min(1280px, 155vw);
+  aspect-ratio: 1 / 1;
+  background: radial-gradient(closest-side,
+    rgba(233,168,69,.20) 0%,
+    rgba(233,168,69,.09) 38%,
+    rgba(196,131,42,.03) 62%,
+    transparent 78%);
+  pointer-events: none;
+}
+.hero__grain {
+  position: absolute; inset: 0;
+  background-image: var(--grain);
+  opacity: .035;
+  mix-blend-mode: screen;
+  pointer-events: none;
+}
+.hero__in { position: relative; display: flex; flex-direction: column; align-items: center; text-align: center; gap: 26px; }
+
+.marquee {
+  display: inline-flex; align-items: center; gap: 12px;
+  padding: 9px 18px;
+  border: 1px solid var(--ink-line);
+  border-radius: 100px;
+  background: rgba(233,168,69,.05);
+}
+.marquee span { font-size: 10.5px; font-weight: 700; letter-spacing: .22em; text-transform: uppercase; color: var(--amber); }
+.bulbs { display: flex; gap: 5px; }
+.bulbs i {
+  width: 5px; height: 5px; border-radius: 50%;
+  background: var(--amber);
+  animation: bulb 1.9s ease-in-out infinite;
+}
+.bulbs i:nth-child(2) { animation-delay: .24s; }
+.bulbs i:nth-child(3) { animation-delay: .48s; }
+@keyframes bulb { 0%, 100% { opacity: .28; } 45% { opacity: 1; box-shadow: 0 0 8px var(--amber); } }
+@media (prefers-reduced-motion: reduce) { .bulbs i { animation: none; opacity: .85; } }
+
+.hero h1 { max-width: 15ch; }
+.hero h1 em { font-style: italic; font-weight: 400; color: var(--amber); }
+.hero__hand { margin-top: -6px; }
+.hero__cta { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; }
+.hero__note { font-size: 13.5px; color: var(--cream-faint); }
+
+/* ---------- proof strip ---------- */
+.proof {
+  border-block: 1px solid var(--ink-line);
+  background: var(--ink-2);
+}
+.proof__grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1px;
+  background: var(--ink-line);
+}
+.proof__cell {
+  background: var(--ink-2);
+  padding: clamp(20px, 3vw, 30px) 16px;
+  text-align: center;
+  display: flex; flex-direction: column; gap: 4px; align-items: center;
+}
+.proof__n {
+  font-family: var(--display);
+  font-weight: 700;
+  font-size: clamp(26px, 3.6vw, 40px);
+  line-height: 1;
+  color: var(--cream);
+  font-variant-numeric: tabular-nums;
+}
+.proof__k { font-size: 10.5px; font-weight: 700; letter-spacing: .16em; text-transform: uppercase; color: var(--cream-faint); }
+@media (max-width: 720px) { .proof__grid { grid-template-columns: repeat(2, 1fr); } }
+
+/* ============================================================
+   HOW IT WORKS — film-leader countdown circles
+   ============================================================ */
+.head { display: flex; flex-direction: column; gap: 14px; max-width: 64ch; }
+.head--center { align-items: center; text-align: center; margin-inline: auto; }
+
+.steps {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: clamp(30px, 5vw, 56px);
+  margin-top: clamp(48px, 6vw, 76px);
+}
+.step { display: flex; flex-direction: column; gap: 18px; }
+.step__no {
+  width: 70px; height: 70px;
+  flex: none;
+  border-radius: 50%;
+  border: 1px solid rgba(233,168,69,.4);
+  display: grid; place-items: center;
+  font-family: var(--display); font-weight: 700; font-size: 27px;
+  color: var(--amber);
+  position: relative;
+  font-variant-numeric: tabular-nums;
+}
+.step__no::before, .step__no::after { content: ""; position: absolute; background: rgba(233,168,69,.22); }
+.step__no::before { top: 50%; left: -13px; right: -13px; height: 1px; }
+.step__no::after { left: 50%; top: -13px; bottom: -13px; width: 1px; }
+.step p { color: var(--cream-dim); font-size: 15.5px; }
+@media (max-width: 760px) { .steps { grid-template-columns: 1fr; gap: 38px; } }
+
+/* ============================================================
+   FEATURES
+   ============================================================ */
+.features {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(258px, 1fr));
+  gap: 1px;
+  margin-top: clamp(44px, 5vw, 68px);
+  background: var(--ink-line);
+  border: 1px solid var(--ink-line);
+}
+.feature {
+  background: var(--ink);
+  padding: var(--pad);
+  display: flex; flex-direction: column; gap: 10px;
+  transition: background .2s ease;
+}
+.feature:hover { background: var(--ink-2); }
+.feature__icon { color: var(--amber); margin-bottom: 4px; }
+.feature__icon svg { width: 22px; height: 22px; stroke: currentColor; stroke-width: 1.5; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+.feature p { color: var(--cream-dim); font-size: 14.5px; line-height: 1.6; }
+
+/* ============================================================
+   REVIEWS — pull-quotes, set like film notices
+   ============================================================ */
+.reviews { background: var(--ink-2); border-block: 1px solid var(--ink-line); }
+.review-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(290px, 1fr));
+  gap: clamp(16px, 2vw, 22px);
+  margin-top: clamp(44px, 5vw, 68px);
+}
+.review {
+  background: var(--ink);
+  border: 1px solid var(--ink-line);
+  border-radius: var(--radius);
+  padding: var(--pad);
+  display: flex; flex-direction: column; gap: 16px;
+  transition: transform .2s ease, border-color .2s ease;
+}
+.review:hover { transform: translateY(-3px); border-color: rgba(233,168,69,.3); }
+@media (prefers-reduced-motion: reduce) { .review:hover { transform: none; } }
+.stars { color: var(--amber); font-size: 13px; letter-spacing: .22em; }
+.review blockquote {
+  margin: 0;
+  font-family: var(--display);
+  font-size: 19.5px;
+  line-height: 1.42;
+  color: var(--cream);
+  flex: 1;
+}
+.review figcaption { display: flex; flex-direction: column; gap: 2px; }
+.review__who { font-size: 14px; font-weight: 700; }
+.review__what { font-size: 12.5px; color: var(--cream-faint); letter-spacing: .04em; }
+
+/* ============================================================
+   PRICING — two ticket stubs
+   ============================================================ */
+.tiers {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: clamp(18px, 2.5vw, 26px);
+  margin-top: clamp(44px, 5vw, 68px);
+  max-width: 820px;
+  margin-inline: auto;
+}
+@media (max-width: 720px) { .tiers { grid-template-columns: 1fr; } }
+.tier {
+  position: relative;
+  background: var(--ink-2);
+  border: 1px solid var(--ink-line);
+  border-radius: var(--radius);
+  padding: var(--pad);
+  display: flex; flex-direction: column;
+}
+.tier--best { border-color: rgba(233,168,69,.45); background: var(--ink-3); }
+.tier__flag {
+  position: absolute; top: 0; right: var(--pad);
+  translate: 0 -50%;
+  background: var(--amber); color: #1A1206;
+  font-size: 10px; font-weight: 800; letter-spacing: .16em; text-transform: uppercase;
+  padding: 5px 11px; border-radius: 2px;
+}
+.tier__name { font-size: 13px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: var(--cream-dim); }
+.tier__price {
+  font-family: var(--display); font-weight: 700;
+  font-size: clamp(40px, 5.6vw, 58px);
+  line-height: 1; margin-top: 12px;
+  display: flex; align-items: baseline; gap: 8px;
+}
+.tier__price small { font-family: var(--sans); font-size: 13.5px; font-weight: 600; color: var(--cream-faint); letter-spacing: 0; }
+.tier__sub { font-size: 14px; color: var(--cream-dim); margin-top: 10px; }
+
+/* full-bleed perforated rule with stub notches */
+.tier__rule {
+  position: relative;
+  margin-inline: calc(var(--pad) * -1);
+  margin-block: 22px;
+  border-top: 1px dashed var(--ink-line);
+}
+.tier__rule::before, .tier__rule::after {
+  content: "";
+  position: absolute; top: 50%; translate: 0 -50%;
+  width: 16px; height: 16px; border-radius: 50%;
+  background: var(--ink);
+  border: 1px solid var(--ink-line);
+}
+.tier__rule::before { left: -9px; }
+.tier__rule::after { right: -9px; }
+
+.tier ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 11px; flex: 1; }
+.tier li { display: flex; gap: 10px; font-size: 14.5px; color: var(--cream-dim); line-height: 1.5; }
+.tier li::before { content: "✓"; color: var(--amber); font-weight: 700; flex: none; }
+.tier li.is-off { color: var(--cream-faint); }
+.tier li.is-off::before { content: "—"; color: var(--cream-faint); }
+.tier .btn { margin-top: 24px; width: 100%; }
+
+/* ============================================================
+   FAQ
+   ============================================================ */
+.faq { display: grid; grid-template-columns: repeat(2, 1fr); gap: clamp(22px, 3vw, 40px); margin-top: clamp(40px, 5vw, 60px); }
+@media (max-width: 760px) { .faq { grid-template-columns: 1fr; } }
+.faq > div { display: flex; flex-direction: column; gap: 7px; }
+.faq h3 { font-size: 16px; }
+.faq p { font-size: 14.5px; color: var(--cream-dim); }
+
+/* ============================================================
+   CLOSING CALL
+   ============================================================ */
+.close { position: relative; overflow: hidden; text-align: center; border-top: 1px solid var(--ink-line); }
+.close__glow {
+  position: absolute; bottom: -58%; left: 50%; translate: -50% 0;
+  width: min(1000px, 140vw); aspect-ratio: 1;
+  background: radial-gradient(closest-side, rgba(233,168,69,.15), transparent 72%);
+  pointer-events: none;
+}
+.close__in { position: relative; display: flex; flex-direction: column; align-items: center; gap: 22px; }
+
+/* ============================================================
+   FOOTER — the product's own end credits
+   ============================================================ */
+.credits { background: #060505; border-top: 1px solid var(--ink-line); padding-block: clamp(46px, 6vw, 72px); }
+.credits__reel { display: flex; flex-direction: column; align-items: center; gap: 22px; text-align: center; }
+.credit-row { display: flex; flex-direction: column; gap: 3px; }
+.credit-row dt { font-size: 10px; font-weight: 700; letter-spacing: .2em; text-transform: uppercase; color: var(--cream-faint); }
+.credit-row dd { margin: 0; font-size: 15px; font-weight: 600; color: var(--cream-dim); }
+.credits dl { margin: 0; display: flex; flex-wrap: wrap; justify-content: center; gap: 20px clamp(30px, 6vw, 62px); }
+.credits__links { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px 22px; }
+.credits__links a { font-size: 13.5px; font-weight: 600; color: var(--cream-dim); text-decoration: none; }
+.credits__links a:hover { color: var(--amber); }
+.credits__fine { font-size: 12.5px; color: #4A433D; }
+.credits__rule { width: 52px; height: 1px; background: var(--ink-line); }
+</style>
+</head>
+<body>
+
+<header class="nav" id="nav">
+  <div class="wrap nav__in">
+    <a class="brand" href="#top" aria-label="Premiere, home">
+      <span class="mark" aria-hidden="true"><i></i><i></i><i></i></span>
+      <span class="brand__name">PREMIERE</span>
+    </a>
+    <nav class="nav__links" aria-label="Sections">
+      <a href="#how">How it works</a>
+      <a href="#reviews">Reviews</a>
+      <a href="#pricing">Pricing</a>
+      <a href="login.html">Sign in</a>
+    </nav>
+    <a class="btn btn--primary btn--sm" href="gift-create.html">Create a reel</a>
+  </div>
+</header>
+
+<main id="top">
+
+  <!-- ══════════════ HERO ══════════════ -->
+  <section class="hero">
+    <div class="hero__glow" aria-hidden="true"></div>
+    <div class="hero__grain" aria-hidden="true"></div>
+    <div class="wrap hero__in">
+      <p class="marquee">
+        <span class="bulbs" aria-hidden="true"><i></i><i></i><i></i></span>
+        <span>Now showing &middot; One night only</span>
+      </p>
+
+      <h1>Their birthday, as&nbsp;a <em>film</em>.</h1>
+      <p class="hand hero__hand">and everyone they love is in it</p>
+
+      <p class="lead">Send one link to friends and family anywhere in the world. Everything they film gets cut into a cinematic reel &mdash; title card, slideshow, scrolling end credits &mdash; that plays on the birthday person's phone the morning they wake up a year older.</p>
+
+      <div class="hero__cta">
+        <a class="btn btn--primary" href="gift-create.html">Create a reel &mdash; free</a>
+        <a class="btn btn--ghost" href="#how">See how it works</a>
+      </div>
+      <p class="hero__note">No card needed to start &middot; Contributors need no app and no account</p>
+    </div>
+  </section>
+
+  <!-- ══════════════ PROOF ══════════════
+       TODO: replace these four figures with your real numbers before launch. -->
+  <section class="proof">
+    <div class="wrap" style="padding-inline:0">
+      <div class="proof__grid">
+        <div class="proof__cell"><span class="proof__n">3 min</span><span class="proof__k">To set up</span></div>
+        <div class="proof__cell"><span class="proof__n">4.9</span><span class="proof__k">Average rating</span></div>
+        <div class="proof__cell"><span class="proof__n">61</span><span class="proof__k">Countries filmed in</span></div>
+        <div class="proof__cell"><span class="proof__n">&infin;</span><span class="proof__k">Times rewatched</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════════════ HOW IT WORKS ══════════════ -->
+  <section class="section" id="how">
+    <div class="wrap">
+      <div class="head head--center">
+        <p class="label">The production</p>
+        <h2>Three steps, and you're done being the organiser.</h2>
+        <p class="lead" style="text-align:center">The hardest part of a group gift is chasing people. This removes the chasing.</p>
+      </div>
+
+      <div class="steps">
+        <article class="step">
+          <div class="step__no" aria-hidden="true">01</div>
+          <h3>Start the reel</h3>
+          <p>Name the birthday person, choose the date it premieres, and write the title card. Two minutes, no account required to try it.</p>
+        </article>
+        <article class="step">
+          <div class="step__no" aria-hidden="true">02</div>
+          <h3>Share one link</h3>
+          <p>Drop it in the group chat or print the QR code for the party. Anyone can add photos and videos straight from their phone &mdash; nothing to download, nothing to sign up for.</p>
+        </article>
+        <article class="step">
+          <div class="step__no" aria-hidden="true">03</div>
+          <h3>It premieres</h3>
+          <p>On the morning, they open their link. The intro animation plays, then their reel, then the end credits with every single person who sent something in.</p>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <div class="strip" aria-hidden="true"></div>
+
+  <!-- ══════════════ FEATURES ══════════════ -->
+  <section class="section">
+    <div class="wrap">
+      <div class="head">
+        <p class="label">What's in the box</p>
+        <h2>Built like a cinema, not a slideshow app.</h2>
+      </div>
+
+      <div class="features">
+        <article class="feature">
+          <span class="feature__icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 4h16v16H4z"/><path d="M4 9h16M4 15h16M9 4v16M15 4v16"/></svg></span>
+          <h3>A real end-credits roll</h3>
+          <p>Every contributor's name scrolls past on a black screen, film-house style. This is the part people screenshot.</p>
+        </article>
+        <article class="feature">
+          <span class="feature__icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg></span>
+          <h3>Nobody installs anything</h3>
+          <p>Contributors tap the link, pick their photos and videos, and they're finished. Works on any phone, any browser, any country.</p>
+        </article>
+        <article class="feature">
+          <span class="feature__icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h2v2h-2zM18 14h2v2h-2zM14 18h2v2h-2zM18 18h2v2h-2z"/></svg></span>
+          <h3>A QR code for the party</h3>
+          <p>Print it, prop it on the table, stick it inside a card. Guests film on the spot and it's in the reel before the cake arrives.</p>
+        </article>
+        <article class="feature">
+          <span class="feature__icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z"/><path d="M5 19V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2Z"/></svg></span>
+          <h3>Private by default</h3>
+          <p>Only people holding the link can see it. There's no feed, no public profile and no algorithm deciding who watches.</p>
+        </article>
+        <article class="feature">
+          <span class="feature__icon" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></svg></span>
+          <h3>Open until the last second</h3>
+          <p>Uploads stay live right up to the premiere time you set, so the cousin who always replies late still makes the cut.</p>
+        </article>
+        <article class="feature">
+          <span class="feature__icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M21 15V6a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v9"/><path d="M3 18h18"/><path d="m9 10 4 2-4 2z"/></svg></span>
+          <h3>Yours to keep</h3>
+          <p>On the Keep Forever pass you can download the finished reel as a file, so it doesn't live and die on somebody else's server.</p>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════════════ REVIEWS ══════════════
+       ⚠️  PLACEHOLDER COPY — swap every quote below for a real one you
+       have permission to publish before this page goes live. -->
+  <section class="section reviews" id="reviews">
+    <div class="wrap">
+      <div class="head head--center">
+        <p class="label">The notices</p>
+        <h2>What people said the morning after.</h2>
+      </div>
+
+      <div class="review-grid">
+        <figure class="review">
+          <p class="stars" aria-label="Five out of five">&#9733;&#9733;&#9733;&#9733;&#9733;</p>
+          <blockquote>He watched it four times before breakfast, then rang his brother in Lagos so they could watch it together.</blockquote>
+          <figcaption><span class="review__who">Adaeze O.</span><span class="review__what">Husband's 40th</span></figcaption>
+        </figure>
+
+        <figure class="review">
+          <p class="stars" aria-label="Five out of five">&#9733;&#9733;&#9733;&#9733;&#9733;</p>
+          <blockquote>Fourteen people filmed something. Not one of them needed an app, an account, or a second reminder from me.</blockquote>
+          <figcaption><span class="review__who">Tom R.</span><span class="review__what">Mum's 65th</span></figcaption>
+        </figure>
+
+        <figure class="review">
+          <p class="stars" aria-label="Five out of five">&#9733;&#9733;&#9733;&#9733;&#9733;</p>
+          <blockquote>The end credits got me. Seeing all of our names scroll past like we'd actually made a film together.</blockquote>
+          <figcaption><span class="review__who">Priya N.</span><span class="review__what">Sister's 30th</span></figcaption>
+        </figure>
+
+        <figure class="review">
+          <p class="stars" aria-label="Five out of five">&#9733;&#9733;&#9733;&#9733;&#9733;</p>
+          <blockquote>She's been in Melbourne three years. On her birthday she woke up to every face from home, in order.</blockquote>
+          <figcaption><span class="review__who">Daniel K.</span><span class="review__what">Daughter's 21st</span></figcaption>
+        </figure>
+
+        <figure class="review">
+          <p class="stars" aria-label="Five out of five">&#9733;&#9733;&#9733;&#9733;&#9733;</p>
+          <blockquote>Put the QR code on the table at the party. By the time the cake came out, the reel was finished.</blockquote>
+          <figcaption><span class="review__who">Sofia M.</span><span class="review__what">Friend's 25th</span></figcaption>
+        </figure>
+
+        <figure class="review">
+          <p class="stars" aria-label="Five out of five">&#9733;&#9733;&#9733;&#9733;&#9733;</p>
+          <blockquote>I am not someone who cries at things. I cried at this one, in the kitchen, at 7am.</blockquote>
+          <figcaption><span class="review__who">Marcus B.</span><span class="review__what">Wife's 50th</span></figcaption>
+        </figure>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════════════ PRICING ══════════════ -->
+  <section class="section" id="pricing">
+    <div class="wrap">
+      <div class="head head--center">
+        <p class="label">Admission</p>
+        <h2>Pay once, or don't pay at all.</h2>
+        <p class="lead" style="text-align:center">Start free and decide later &mdash; you can upgrade any time before the link expires.</p>
+      </div>
+
+      <div class="tiers">
+        <article class="tier">
+          <p class="tier__name">One Week Pass</p>
+          <p class="tier__price">Free</p>
+          <p class="tier__sub">For a surprise that only needs to land once.</p>
+          <div class="tier__rule" aria-hidden="true"></div>
+          <ul>
+            <li>Up to 30 photos and videos</li>
+            <li>Full cinematic player and end credits</li>
+            <li>Shareable link and QR code</li>
+            <li class="is-off">Link and files deleted 7 days after the premiere</li>
+            <li class="is-off">No download of the finished reel</li>
+          </ul>
+          <a class="btn btn--ghost" href="gift-create.html">Start free</a>
+        </article>
+
+        <article class="tier tier--best">
+          <span class="tier__flag">Most chosen</span>
+          <p class="tier__name">Keep Forever</p>
+          <p class="tier__price">$9 <small>once, not monthly</small></p>
+          <p class="tier__sub">For the one they'll still be showing people next year.</p>
+          <div class="tier__rule" aria-hidden="true"></div>
+          <ul>
+            <li>Unlimited photos and videos</li>
+            <li>Full cinematic player and end credits</li>
+            <li>Shareable link and QR code</li>
+            <li>Never expires and is never deleted</li>
+            <li>Download the finished reel as a file</li>
+          </ul>
+          <a class="btn btn--primary" href="gift-create.html">Create a reel</a>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <div class="strip" aria-hidden="true"></div>
+
+  <!-- ══════════════ FAQ ══════════════ -->
+  <section class="section section--tight">
+    <div class="wrap">
+      <div class="head">
+        <p class="label">Before you ask</p>
+        <h2>The four things everybody wants to know.</h2>
+      </div>
+
+      <div class="faq">
+        <div>
+          <h3>Does the birthday person need an account?</h3>
+          <p>No. They open a link and it plays. Same for everyone contributing &mdash; a link is the whole experience, on both ends.</p>
+        </div>
+        <div>
+          <h3>What happens after seven days on the free pass?</h3>
+          <p>The link stops working and the files are permanently deleted. Upgrade to Keep Forever any time before that and nothing is lost.</p>
+        </div>
+        <div>
+          <h3>Can I see what people have uploaded first?</h3>
+          <p>Yes. You hold the organiser link, so you can review everything and remove anything before it premieres.</p>
+        </div>
+        <div>
+          <h3>How long does a finished reel run?</h3>
+          <p>Usually two to six minutes, depending on how much comes in. Long enough to feel like a film, short enough to watch twice.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════════════ CLOSE ══════════════ -->
+  <section class="section close">
+    <div class="close__glow" aria-hidden="true"></div>
+    <div class="wrap close__in">
+      <p class="label">Roll camera</p>
+      <h2 style="max-width:22ch">Somebody you love has a birthday coming.</h2>
+      <p class="hand">give them the whole cast</p>
+      <a class="btn btn--primary" href="gift-create.html" style="margin-top:4px">Create their reel &mdash; free</a>
+      <p class="hero__note">Takes about three minutes &middot; No card needed to start</p>
+    </div>
+  </section>
+
+</main>
+
+<footer class="credits">
+  <div class="wrap credits__reel">
+    <a class="brand" href="#top" style="margin-right:0">
+      <span class="mark" aria-hidden="true"><i></i><i></i><i></i></span>
+      <span class="brand__name">PREMIERE</span>
+    </a>
+
+    <dl>
+      <div class="credit-row"><dt>Directed by</dt><dd>You</dd></div>
+      <div class="credit-row"><dt>Starring</dt><dd>Someone turning one year older</dd></div>
+      <div class="credit-row"><dt>Runtime</dt><dd>Two to six minutes</dd></div>
+    </dl>
+
+    <div class="credits__rule" aria-hidden="true"></div>
+
+    <nav class="credits__links" aria-label="Footer">
+      <a href="#how">How it works</a>
+      <a href="#pricing">Pricing</a>
+      <a href="#reviews">Reviews</a>
+      <a href="gift-create.html">Create a reel</a>
+      <a href="login.html">Sign in</a>
+    </nav>
+
+    <p class="credits__fine">&copy; <span id="yr">2026</span> Premiere &middot; Made for birthdays, not for feeds.</p>
+  </div>
+</footer>
+
+<script>
+  document.getElementById('yr').textContent = new Date().getFullYear();
+
+  const nav = document.getElementById('nav');
+  const onScroll = () => nav.classList.toggle('is-stuck', window.scrollY > 12);
+  onScroll();
+  addEventListener('scroll', onScroll, { passive: true });
+</script>
+
+</body>
+</html>

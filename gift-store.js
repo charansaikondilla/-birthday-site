@@ -64,12 +64,22 @@
     },
     async createGift({ name, message }) {
       const slug = slugify();
-      const gift = { slug, name: name || '', message: message || '', createdAt: new Date().toISOString() };
+      const gift = { slug, name: name || '', message: message || '', createdAt: new Date().toISOString(), paid: false };
       await this.tx('gifts', 'readwrite', (s) => s.put(gift));
       return gift;
     },
     async getGift(slug) {
       return (await this.tx('gifts', 'readonly', (s) => s.get(slug))) || null;
+    },
+    // Demo mode has no server to receive a Stripe webhook, so paying just
+    // flips this flag locally (honor system) — real cloud mode only ever
+    // sets `paid` from a verified webhook, never from the browser.
+    async markPaid(slug) {
+      const gift = await this.getGift(slug);
+      if (!gift) return null;
+      gift.paid = true;
+      await this.tx('gifts', 'readwrite', (s) => s.put(gift));
+      return gift;
     },
     async addMedia(slug, file) {
       const id = slugify() + Date.now();
@@ -92,6 +102,22 @@
       });
     },
     async removeMedia(slug, id) { await this.tx('media', 'readwrite', (s) => s.delete(id)); },
+    // Demo mode has only one "user" (this browser), so this is just every
+    // gift ever created here — good enough for trying the dashboard out.
+    async listMyGifts() {
+      const d = await this.open();
+      return new Promise((resolve, reject) => {
+        const out = [];
+        const req = d.transaction('gifts', 'readonly').objectStore('gifts').openCursor();
+        req.onsuccess = () => {
+          const c = req.result;
+          if (!c) return resolve(out.sort((a, b) => b.createdAt.localeCompare(a.createdAt)));
+          out.push(c.value);
+          c.continue();
+        };
+        req.onerror = () => reject(req.error);
+      });
+    },
   };
 
   /* --------------------------- CLOUD backend ---------------------------- */
@@ -105,10 +131,37 @@
   // its exact id) — there is no endpoint that lists gifts. Nobody, including
   // someone reading this source file, can make the Worker return more than
   // one gift's data. That's what makes "only people with the link" true.
+  /* ----------------------------- Auth (Google) ---------------------------- */
+  // The session token is opaque to the browser — it's issued by the Worker
+  // after it verifies a real Google Sign-In ID token, and just gets sent
+  // back as "Authorization: Bearer <token>" on requests that need to know
+  // who's signed in (creating a gift, listing "my gifts").
+  const SESSION_KEY = 'gift-session';
+  const Auth = {
+    getSession() { try { return JSON.parse(localStorage.getItem(SESSION_KEY) || 'null'); } catch { return null; } },
+    isSignedIn() { return !!this.getSession(); },
+    signOut() { localStorage.removeItem(SESSION_KEY); },
+    // Called with the Google Identity Services `credential` (an ID token JWT)
+    // from the Sign in with Google button's callback.
+    async signInWithGoogle(credential) {
+      if (!CLOUD_ON) throw new Error('Sign-in needs cloud mode (the Worker) to be set up first.');
+      const res = await fetch(`${CFG.WORKER_URL}/auth/google`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ credential }),
+      });
+      const body = await res.json().catch(() => null);
+      if (!res.ok) throw new Error((body && body.error) || 'Could not sign in with Google.');
+      localStorage.setItem(SESSION_KEY, JSON.stringify(body));
+      return body; // { session, email, name }
+    },
+  };
+
   async function workerFetch(path, options = {}) {
+    const session = Auth.getSession();
+    const headers = { ...(options.headers || {}) };
+    if (session && session.session) headers.Authorization = `Bearer ${session.session}`;
     let res;
     try {
-      res = await fetch(`${CFG.WORKER_URL}${path}`, options);
+      res = await fetch(`${CFG.WORKER_URL}${path}`, { ...options, headers });
     } catch (e) {
       throw new Error('Could not reach the cloud (check your internet connection).');
     }
@@ -138,13 +191,17 @@
         body: JSON.stringify({ slug: slugify(), name: name || '', message: message || '' }),
       });
       if (!data) throw new Error('Could not create the gift: no data came back.');
-      return { slug: data.slug, name: data.name, message: data.message, createdAt: data.created_at };
+      return { slug: data.slug, name: data.name, message: data.message, createdAt: data.created_at, paid: !!data.paid };
     },
     async getGift(slug) {
       const { notFound, data } = await workerFetch(`/gifts/${encodeURIComponent(slug)}`);
       if (notFound || !data) return null;
-      return { slug: data.slug, name: data.name, message: data.message, createdAt: data.created_at };
+      return { slug: data.slug, name: data.name, message: data.message, createdAt: data.created_at, paid: !!data.paid };
     },
+    // Cloud mode never sets `paid` from the browser — only the Worker's
+    // Stripe webhook does that. This just re-fetches so the UI can pick up
+    // the webhook's result after the user comes back from checkout.
+    async markPaid(slug) { return this.getGift(slug); },
     async addMedia(slug, file) {
       const q = `filename=${encodeURIComponent(file.name)}`;
       const { notFound, data } = await workerFetch(`/gifts/${encodeURIComponent(slug)}/media?${q}`, {
@@ -161,6 +218,11 @@
     },
     async removeMedia(slug, id) {
       await workerFetch(`/media/${encodeURIComponent(id)}`, { method: 'DELETE' });
+    },
+    // Every gift owned by the signed-in user — powers the "my gifts" dashboard.
+    async listMyGifts() {
+      const { data } = await workerFetch('/me/gifts');
+      return (data || []).map((r) => ({ slug: r.slug, name: r.name, message: r.message, createdAt: r.created_at, paid: !!r.paid }));
     },
   };
 
@@ -191,6 +253,9 @@
     addMedia: (...a) => backend.addMedia(...a),
     listMedia: (...a) => backend.listMedia(...a),
     removeMedia: (...a) => backend.removeMedia(...a),
+    markPaid: (...a) => backend.markPaid(...a),
+    listMyGifts: (...a) => backend.listMyGifts(...a),
+    Auth,
     // Usable even when CLOUD_ON is false — it just resolves to null so the caller
     // (the main site's own uploads) knows to fall back to local browser storage.
     cloudUploadMedia,

@@ -13,6 +13,14 @@
   <link rel="stylesheet" href="style.css">
   <script src="cloud-config.js"></script>
   <script src="gift-store.js"></script>
+  <script>
+    // Gift viewers skip auth — the gift slug is their key; only the owner needs to log in
+    (function() {
+      if (new URLSearchParams(location.search).has('gift')) return;
+      const isAuth = sessionStorage.getItem('auth-token') || localStorage.getItem('auth-token');
+      if (!isAuth) window.location.href = 'landing.html';
+    })();
+  </script>
 </head>
 <body>
 
@@ -110,10 +118,22 @@
     </div>
 
     <div class="finale" id="finale" hidden>
-      <p class="series"><span class="n-mini" aria-hidden="true"><i></i><i></i><i></i></span>ORIGINAL</p>
-      <h2 id="finale-title"></h2>
-      <div id="finale-lines"></div>
-      <div class="buttons">
+      <div class="credits-wrap" id="credits-wrap">
+        <div class="credits-reel" id="credits-reel">
+          <div class="credits-badge">
+            <span class="n-mini" aria-hidden="true"><i></i><i></i><i></i></span>
+            <span>ORIGINAL</span>
+          </div>
+          <h2 class="credits-headline" id="finale-title"></h2>
+          <div class="credits-lines" id="finale-lines"></div>
+          <div class="credits-divider"></div>
+          <div class="credits-block" id="credits-block"></div>
+          <div class="credits-divider"></div>
+          <p class="credits-footer" id="credits-footer"></p>
+          <div style="height:8vh"></div>
+        </div>
+      </div>
+      <div class="credits-actions" id="credits-actions">
         <button class="btn play" id="replay"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 4l14 8-14 8z"/></svg>Replay</button>
         <button class="btn more" id="finale-home">Back to Home</button>
       </div>
@@ -166,6 +186,13 @@
   </div>
 
   <a id="gift-add" class="cz-fab gift-add-fab" href="gift-upload.html" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg><span>Add photos</span></a>
+
+  <!-- Logout button -->
+  <button id="logout-btn" class="cz-fab logout-fab" type="button" aria-label="Logout" hidden>
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 8l4-4M20 4v8h-8"/></svg>
+    <span>Logout</span>
+  </button>
+
   <script src="script.js"></script>
 </body>
 </html>

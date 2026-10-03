@@ -742,7 +742,46 @@ function stopSlides() {
 function showFinale() {
   stopSlides();
   hideUI();
+
+  // Build the credits block with dynamic name
+  const creditsBlock = document.getElementById('credits-block');
+  if (creditsBlock) {
+    const rows = [
+      ['Starring', esc(cfg.name) || 'The Birthday Star'],
+      ['Produced By', 'Everyone Who Loves You'],
+      ['Directed By', 'Love &amp; Friendship'],
+      ['Special Thanks', 'You, for being you'],
+    ];
+    creditsBlock.innerHTML = rows.map(([label, value]) =>
+      `<div class="credit-row"><span class="credit-label">${label}</span><span class="credit-value">${value}</span></div>`
+    ).join('');
+  }
+  const footerEl = document.getElementById('credits-footer');
+  if (footerEl) footerEl.textContent = cfg.footer?.note || `Made with love · ${new Date().getFullYear()}`;
+
   finale.hidden = false;
+
+  // Scroll credits after 1 s delay — calculate distance dynamically
+  setTimeout(() => {
+    const reel = document.getElementById('credits-reel');
+    const wrap = document.getElementById('credits-wrap');
+    if (!reel || !wrap) return;
+    const reelH = reel.scrollHeight;
+    const wrapH = wrap.clientHeight;
+    const duration = Math.max(14, (reelH + wrapH) / 55); // 55 px/s
+    reel.style.transform = `translateY(${wrapH}px)`;
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        reel.style.transition = `transform ${duration}s linear`;
+        reel.style.transform = `translateY(-${reelH}px)`;
+      });
+    });
+    // Show action buttons after 60 % of the scroll completes
+    setTimeout(() => {
+      const actions = document.getElementById('credits-actions');
+      if (actions) actions.classList.add('is-visible');
+    }, duration * 600);
+  }, 1000);
 }
 
 /* ---------- More Info modal ---------- */
@@ -1386,7 +1425,7 @@ async function tryGiftMode() {
   try {
     const gift = await GiftStore.getGift(slug);
     if (!gift) { showGiftScreen("This gift isn't here", "We couldn't find a gift with this link — it may have been deleted after its free trial ended.", true); return true; }
-    if (GiftStore.isExpired(gift.createdAt)) { showGiftScreen('This gift has expired', `Its ${GiftStore.trialDays}-day free trial ended. Buy the gift to keep it forever, or create a new one.`, true); return true; }
+    if (!gift.paid && GiftStore.isExpired(gift.createdAt)) { showGiftScreen('This gift has expired', `Its ${GiftStore.trialDays}-day free trial ended. Buy the gift to keep it forever, or create a new one.`, true); return true; }
     const media = await GiftStore.listMedia(slug);
     cfg = normalise(cfg);
     applyGiftMedia(gift, media);
@@ -1400,12 +1439,28 @@ async function tryGiftMode() {
   }
 }
 
+/* ---------- Authentication & Logout ---------- */
+function setupLogout() {
+  const logoutBtn = document.getElementById('logout-btn');
+  if (logoutBtn) {
+    logoutBtn.hidden = false;
+    logoutBtn.addEventListener('click', () => {
+      if (confirm('Are you sure you want to logout?')) {
+        sessionStorage.removeItem('auth-token');
+        localStorage.removeItem('auth-token');
+        window.location.href = 'login.html';
+      }
+    });
+  }
+}
+
 /* ---------- Go ---------- */
 (async function start() {
   await loadSaved();
   const blocked = await tryGiftMode();
   if (blocked) return;
   autoOn = cfg.autoplay;
+  setupLogout();
   bindHome();
   bindPlayer();
   renderProfiles();

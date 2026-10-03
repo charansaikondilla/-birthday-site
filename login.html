@@ -1,0 +1,332 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#000000">
+  <meta name="robots" content="noindex,nofollow">
+  <title>Login - Happy Birthday</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 11 20'%3E%3Crect width='11' height='20' fill='%23000'/%3E%3Cpath d='M0 0h3.3v20H0z' fill='%23e50914'/%3E%3Cpath d='M7.7 0H11v20H7.7z' fill='%23e50914'/%3E%3Cpath d='M0 0h3.3L11 20H7.7z' fill='%23b1060f'/%3E%3C/svg%3E">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="preconnect" href="https://accounts.google.com">
+  <link rel="dns-prefetch" href="https://accounts.google.com">
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&family=Caveat:wght@700&display=swap" rel="stylesheet">
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Montserrat', sans-serif;
+      background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+    }
+
+    .login-container {
+      width: 100%;
+      max-width: 400px;
+      padding: 20px;
+    }
+
+    .login-card {
+      background: rgba(0, 0, 0, 0.7);
+      border: 1px solid rgba(229, 9, 20, 0.3);
+      border-radius: 8px;
+      padding: 40px 30px;
+      backdrop-filter: blur(10px);
+    }
+
+    .login-header {
+      text-align: center;
+      margin-bottom: 40px;
+    }
+
+    .n-logo-login {
+      font-size: 48px;
+      font-weight: 800;
+      color: #e50914;
+      margin-bottom: 16px;
+      letter-spacing: -2px;
+    }
+
+    .login-title {
+      font-size: 24px;
+      font-weight: 600;
+      margin-bottom: 8px;
+    }
+
+    .login-subtitle {
+      font-size: 14px;
+      color: #999;
+    }
+
+    .form-group {
+      margin-bottom: 20px;
+    }
+
+    label {
+      display: block;
+      font-size: 13px;
+      font-weight: 500;
+      margin-bottom: 8px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    input {
+      width: 100%;
+      padding: 12px 16px;
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 4px;
+      color: #fff;
+      font-family: 'Montserrat', sans-serif;
+      font-size: 14px;
+      transition: all 0.3s ease;
+    }
+
+    input:focus {
+      outline: none;
+      background: rgba(255, 255, 255, 0.15);
+      border-color: #e50914;
+      box-shadow: 0 0 8px rgba(229, 9, 20, 0.3);
+    }
+
+    input::placeholder {
+      color: rgba(255, 255, 255, 0.5);
+    }
+
+    .form-group.checkbox {
+      display: flex;
+      align-items: center;
+      margin-bottom: 24px;
+    }
+
+    input[type="checkbox"] {
+      width: 18px;
+      height: 18px;
+      margin-right: 10px;
+      cursor: pointer;
+    }
+
+    .form-group.checkbox label {
+      margin: 0;
+      font-size: 13px;
+      text-transform: none;
+      letter-spacing: normal;
+      cursor: pointer;
+    }
+
+    .btn-login {
+      width: 100%;
+      padding: 12px;
+      background: #e50914;
+      border: none;
+      border-radius: 4px;
+      color: #fff;
+      font-size: 16px;
+      font-weight: 600;
+      font-family: 'Montserrat', sans-serif;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      margin-bottom: 16px;
+    }
+
+    .btn-login:hover {
+      background: #f40612;
+      box-shadow: 0 8px 24px rgba(229, 9, 20, 0.4);
+    }
+
+    .btn-login:active {
+      transform: scale(0.98);
+    }
+
+    .btn-skip {
+      width: 100%;
+      padding: 12px;
+      background: transparent;
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      border-radius: 4px;
+      color: #fff;
+      font-size: 16px;
+      font-weight: 600;
+      font-family: 'Montserrat', sans-serif;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+
+    .btn-skip:hover {
+      background: rgba(255, 255, 255, 0.05);
+      border-color: #e50914;
+    }
+
+    .error-message {
+      display: none;
+      color: #e50914;
+      font-size: 13px;
+      margin-bottom: 16px;
+      padding: 12px;
+      background: rgba(229, 9, 20, 0.1);
+      border-radius: 4px;
+      border-left: 3px solid #e50914;
+    }
+
+    .error-message.show {
+      display: block;
+      animation: slideIn 0.3s ease;
+    }
+
+    @keyframes slideIn {
+      from {
+        opacity: 0;
+        transform: translateY(-10px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @media (max-width: 480px) {
+      .login-card {
+        padding: 30px 20px;
+      }
+
+      .n-logo-login {
+        font-size: 40px;
+      }
+
+      .login-title {
+        font-size: 20px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="login-container">
+    <div class="login-card">
+      <div class="login-header">
+        <div class="n-logo-login">N</div>
+        <h1 class="login-title">Welcome</h1>
+        <p class="login-subtitle" id="login-subtitle">Sign in to create and manage your gifts</p>
+      </div>
+
+      <div class="error-message" id="error-message"></div>
+
+      <div id="google-btn" style="display:flex;justify-content:center;margin-bottom:16px"></div>
+
+      <form id="login-form" style="display:none">
+        <div class="form-group">
+          <label for="access-code">Access Code</label>
+          <input type="password" id="access-code" placeholder="Enter your access code" autocomplete="off">
+        </div>
+        <div class="form-group checkbox">
+          <input type="checkbox" id="remember-me">
+          <label for="remember-me">Remember me on this device</label>
+        </div>
+        <button type="submit" class="btn-login">Enter</button>
+      </form>
+      <button type="button" class="btn-skip" id="skip-btn">Skip — just view a gift I was sent</button>
+    </div>
+  </div>
+
+  <script src="cloud-config.js"></script>
+  <script src="gift-store.js"></script>
+  <script>
+    const errorMessage = document.getElementById('error-message');
+    function showError(message) {
+      errorMessage.textContent = message;
+      errorMessage.classList.add('show');
+      setTimeout(() => errorMessage.classList.remove('show'), 4000);
+    }
+
+    // Already signed in (real Google session, or the old access-code flow)? Skip straight through.
+    if ((window.GiftStore && GiftStore.Auth.isSignedIn()) || sessionStorage.getItem('auth-token') || localStorage.getItem('auth-token')) {
+      window.location.href = 'my-gifts.html';
+    }
+
+    const clientId = window.CLOUD && window.CLOUD.GOOGLE_CLIENT_ID;
+    if (clientId) {
+      // Real Gmail sign-in path. Waits for the GSI script (loaded in <head>)
+      // instead of window.onload, so the button/One Tap appear as soon as
+      // Google's script is ready rather than after every image/font loads.
+      let initedOnce = false;
+      function initGoogleSignIn() {
+        if (initedOnce) return;
+        if (!(window.google && window.google.accounts && window.google.accounts.id)) return;
+        initedOnce = true;
+
+        google.accounts.id.initialize({
+          client_id: clientId,
+          callback: async ({ credential }) => {
+            try {
+              await GiftStore.Auth.signInWithGoogle(credential);
+              window.location.href = 'my-gifts.html';
+            } catch (e) {
+              showError(e.message || 'Could not sign in with Google.');
+            }
+          },
+          auto_select: true,            // auto sign-in silently if the browser remembers one Google account
+          cancel_on_tap_outside: false, // don't dismiss the One Tap prompt on an accidental outside click
+          use_fedcm_for_prompt: true,   // use the modern FedCM flow (fewer third-party-cookie errors)
+          itp_support: true,            // keep One Tap working in Safari/ITP browsers
+        });
+        google.accounts.id.renderButton(document.getElementById('google-btn'), { theme: 'outline', size: 'large', width: 260 });
+
+        // Also trigger the One Tap auto-prompt so a returning user is
+        // signed in automatically without clicking the button.
+        google.accounts.id.prompt((notification) => {
+          if (notification.isNotDisplayed && notification.isNotDisplayed()) {
+            // Silently ignore (e.g. user dismissed it before, or FedCM unavailable) —
+            // the visible button is still there as a fallback.
+          }
+        });
+      }
+
+      // The script in <head> is async; poll briefly in case it hasn't
+      // finished parsing yet, so init runs the instant it's ready.
+      if (window.google && window.google.accounts && window.google.accounts.id) {
+        initGoogleSignIn();
+      } else {
+        const poll = setInterval(() => {
+          if (window.google && window.google.accounts && window.google.accounts.id) {
+            clearInterval(poll);
+            initGoogleSignIn();
+          }
+        }, 50);
+        setTimeout(() => {
+          clearInterval(poll);
+          if (!initedOnce) {
+            document.getElementById('google-btn').innerHTML = '<p style="color:#999;font-size:12px;text-align:center">Google sign-in failed to load. Check your connection and refresh.</p>';
+          }
+        }, 8000);
+      }
+    } else {
+      // Not configured yet — fall back to the old access-code login so the
+      // site still works, and say clearly what's missing.
+      document.getElementById('login-subtitle').textContent = 'Enter your access code to begin';
+      document.getElementById('google-btn').innerHTML = '<p style="color:#999;font-size:12px;text-align:center">Google sign-in isn\'t configured yet — add GOOGLE_CLIENT_ID to cloud-config.js.</p>';
+      document.getElementById('login-form').style.display = '';
+      document.getElementById('login-form').addEventListener('submit', (e) => {
+        e.preventDefault();
+        const code = document.getElementById('access-code').value.trim();
+        if (code.length < 4) { showError('Access code must be at least 4 characters'); return; }
+        const remember = document.getElementById('remember-me').checked;
+        const token = 'auth_' + Date.now();
+        (remember ? localStorage : sessionStorage).setItem('auth-token', token);
+        window.location.href = 'my-gifts.html';
+      });
+    }
+
+    document.getElementById('skip-btn').addEventListener('click', () => { window.location.href = 'index.html'; });
+  </script>
+</body>
+</html>

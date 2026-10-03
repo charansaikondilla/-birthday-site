@@ -7,7 +7,7 @@ compatibility_date = "2024-11-01"
 [[d1_databases]]
 binding = "DB"
 database_name = "birthday-gifts"
-database_id = "REPLACE_WITH_YOUR_DATABASE_ID"
+database_id = "dfe1b967-21ff-4401-8d87-f45a6d8bd8f6"
 
 [[r2_buckets]]
 binding = "GIFT_MEDIA"
@@ -16,10 +16,22 @@ bucket_name = "gift-media"
 [vars]
 # The public URL your R2 bucket serves files from (its "Public Development URL",
 # or your own custom domain once you add one) — see worker/README.md step 4.
-R2_PUBLIC_URL = "REPLACE_WITH_YOUR_R2_PUBLIC_URL"
+R2_PUBLIC_URL = "https://pub-cd8f27e339e740558e1cc8f3ba3a9b89.r2.dev"
 # Keep this the same as TRIAL_DAYS in cloud-config.js.
 TRIAL_DAYS = "7"
+# Google Sign-In OAuth Client ID (from Google Cloud Console — this is public,
+# it identifies your app, not a secret). Keep this the same value as
+# GOOGLE_CLIENT_ID in cloud-config.js.
+GOOGLE_CLIENT_ID = "REPLACE_WITH_YOUR_GOOGLE_CLIENT_ID"
 
 # Runs the cleanup job daily at 03:00 UTC.
 [triggers]
 crons = ["0 3 * * *"]
+
+# STRIPE_WEBHOOK_SECRET and SESSION_SECRET are NOT set here — secrets never
+# go in this file (it's committed to git). Set them once with:
+#   npx wrangler secret put STRIPE_WEBHOOK_SECRET
+#   (paste the "Signing secret" from your Stripe webhook settings when prompted)
+#   npx wrangler secret put SESSION_SECRET
+#   (paste any long random string — this signs your own login sessions;
+#   generate one with: node -e "console.log(crypto.randomUUID()+crypto.randomUUID())")

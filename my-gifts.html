@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex,nofollow">
+<title>My Gifts</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Caveat:wght@700&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; background: #0B0908; color: #F2EAE0; font-family: Manrope, sans-serif; min-height: 100vh; }
+  header { display: flex; align-items: center; justify-content: space-between; padding: 20px clamp(20px,4vw,40px); border-bottom: 1px solid #2A2320; }
+  header h1 { font-size: 20px; margin: 0; }
+  header .who { font-size: 13px; color: #A79C91; }
+  .signout { background: none; border: 1px solid #2A2320; color: #F2EAE0; padding: 8px 14px; border-radius: 6px; cursor: pointer; font-size: 13px; }
+  .signout:hover { border-color: #E9A845; }
+  main { max-width: 760px; margin: 0 auto; padding: clamp(20px,4vw,40px); }
+  .new-gift { display: inline-block; background: #E9A845; color: #0B0908; font-weight: 700; padding: 12px 20px; border-radius: 6px; text-decoration: none; margin-bottom: 28px; }
+  .new-gift:hover { background: #C4832A; }
+  .card { background: #141110; border: 1px solid #2A2320; border-radius: 8px; padding: 18px 20px; margin-bottom: 14px; }
+  .card-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+  .card h2 { font-family: Caveat, cursive; font-size: 26px; margin: 0; }
+  .badge { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; padding: 4px 8px; border-radius: 4px; }
+  .badge.paid { background: rgba(26,156,74,.15); color: #3ecb72; }
+  .badge.trial { background: rgba(233,168,69,.15); color: #E9A845; }
+  .card p.meta { color: #A79C91; font-size: 12.5px; margin: 6px 0 12px; }
+  .actions { display: flex; gap: 10px; flex-wrap: wrap; }
+  .actions a, .actions button { font-size: 13px; padding: 8px 12px; border-radius: 6px; text-decoration: none; border: 1px solid #2A2320; color: #F2EAE0; background: transparent; cursor: pointer; }
+  .actions a:hover, .actions button:hover { border-color: #E9A845; }
+  .empty { color: #A79C91; text-align: center; padding: 60px 0; }
+  .status { text-align: center; color: #A79C91; padding: 60px 0; }
+</style>
+</head>
+<body>
+  <header>
+    <h1>🎁 My Gifts</h1>
+    <div style="display:flex;align-items:center;gap:14px">
+      <span class="who" id="who"></span>
+      <button class="signout" id="signout">Sign out</button>
+    </div>
+  </header>
+  <main>
+    <a class="new-gift" href="gift-create.html">＋ Create a new gift</a>
+    <div id="list"><p class="status">Loading your gifts…</p></div>
+  </main>
+
+  <script src="cloud-config.js"></script>
+  <script src="gift-store.js"></script>
+  <script>
+    const list = document.getElementById('list');
+
+    if (!GiftStore.Auth.isSignedIn() && !sessionStorage.getItem('auth-token') && !localStorage.getItem('auth-token')) {
+      window.location.href = 'login.html';
+    }
+
+    const session = GiftStore.Auth.getSession();
+    document.getElementById('who').textContent = session ? (session.name || session.email) : '';
+
+    document.getElementById('signout').addEventListener('click', () => {
+      GiftStore.Auth.signOut();
+      sessionStorage.removeItem('auth-token');
+      localStorage.removeItem('auth-token');
+      window.location.href = 'login.html';
+    });
+
+    (async () => {
+      try {
+        const gifts = await GiftStore.listMyGifts();
+        if (!gifts.length) { list.innerHTML = '<p class="empty">No gifts yet — create your first one above.</p>'; return; }
+        list.innerHTML = gifts.map((g) => {
+          const paid = g.paid;
+          const expired = !paid && GiftStore.isExpired(g.createdAt);
+          const badge = paid ? '<span class="badge paid">Paid — kept forever</span>' : `<span class="badge trial">${expired ? 'Trial expired' : GiftStore.fmtLeft(g.createdAt)}</span>`;
+          const shareLink = GiftStore.linkFor(g.slug);
+          const viewLink = GiftStore.viewLinkFor(g.slug);
+          return `
+            <div class="card">
+              <div class="card-top">
+                <h2>${g.name ? `For ${g.name}` : 'Untitled gift'}</h2>
+                ${badge}
+              </div>
+              <p class="meta">Created ${new Date(g.createdAt).toLocaleDateString()}</p>
+              <div class="actions">
+                <a href="${viewLink}" target="_blank" rel="noopener">▶ View</a>
+                <a href="${shareLink}" target="_blank" rel="noopener">＋ Add photos</a>
+                <button data-copy="${shareLink}">Copy share link</button>
+              </div>
+            </div>`;
+        }).join('');
+        list.querySelectorAll('[data-copy]').forEach((btn) => {
+          btn.addEventListener('click', async () => {
+            try { await navigator.clipboard.writeText(btn.dataset.copy); btn.textContent = 'Copied ✓'; }
+            catch { /* clipboard unavailable — link is already visible via the other buttons */ }
+            setTimeout(() => { btn.textContent = 'Copy share link'; }, 2000);
+          });
+        });
+      } catch (e) {
+        list.innerHTML = `<p class="status">Could not load your gifts: ${e.message || 'unknown error'}</p>`;
+      }
+    })();
+  </script>
+</body>
+</html>

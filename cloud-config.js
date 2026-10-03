@@ -18,4 +18,10 @@ window.CLOUD = {
   // How many days a gift's uploads live before they're deleted. Keep this the
   // same as TRIAL_DAYS in worker/wrangler.toml.
   TRIAL_DAYS: 7,
+
+  // Google Sign-In OAuth Client ID (Google Cloud Console → APIs & Services →
+  // Credentials → Create Credentials → OAuth client ID → Web application).
+  // Leave blank to keep the old access-code login instead of Gmail sign-in.
+  // Keep this the same value as GOOGLE_CLIENT_ID in worker/wrangler.toml.
+  GOOGLE_CLIENT_ID: '',
 };
