@@ -23,5 +23,6 @@ window.CLOUD = {
   // Credentials → Create Credentials → OAuth client ID → Web application).
   // Leave blank to keep the old access-code login instead of Gmail sign-in.
   // Keep this the same value as GOOGLE_CLIENT_ID in worker/wrangler.toml.
-  GOOGLE_CLIENT_ID: '',
+  GOOGLE_CLIENT_ID: '1013321538760-icp2obo2s7c0c9bkcl27ih30n1kop1m2.apps.googleusercontent.com
+  ',
 };
