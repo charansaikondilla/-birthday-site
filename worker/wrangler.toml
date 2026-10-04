@@ -22,7 +22,7 @@ TRIAL_DAYS = "7"
 # Google Sign-In OAuth Client ID (from Google Cloud Console — this is public,
 # it identifies your app, not a secret). Keep this the same value as
 # GOOGLE_CLIENT_ID in cloud-config.js.
-GOOGLE_CLIENT_ID = "REPLACE_WITH_YOUR_GOOGLE_CLIENT_ID"
+GOOGLE_CLIENT_ID = "1013321538760-icp2obo2s7c0c9bkcl27ih30n1kop1m2.apps.googleusercontent.com"
 
 # Runs the cleanup job daily at 03:00 UTC.
 [triggers]
