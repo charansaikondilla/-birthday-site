@@ -13,19 +13,11 @@
   <link rel="stylesheet" href="style.css">
   <script src="cloud-config.js"></script>
   <script src="gift-store.js"></script>
-  <script>
-    // Gift viewers skip auth — the gift slug is their key; only the owner needs to log in
-    (function() {
-      if (new URLSearchParams(location.search).has('gift')) return;
-      const isAuth = sessionStorage.getItem('auth-token') || localStorage.getItem('auth-token');
-      if (!isAuth) window.location.href = 'landing.html';
-    })();
-  </script>
 </head>
 <body>
 
   <!-- 1. INTRO — the N logo builds, holds, then bursts into colour ribbons -->
-  <section id="intro" class="screen intro" aria-label="Intro">
+  <section id="intro" class="screen intro" hidden aria-label="Intro">
     <div class="n-logo" aria-hidden="true">
       <span class="n-left"></span>
       <span class="n-right"></span>

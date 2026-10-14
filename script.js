@@ -1460,11 +1460,10 @@ function setupLogout() {
   const blocked = await tryGiftMode();
   if (blocked) return;
   autoOn = cfg.autoplay;
-  setupLogout();
   bindHome();
   bindPlayer();
   renderProfiles();
   renderHome();
   renderPlayer();
-  startIntro();
+  openHome(false);
 })();
