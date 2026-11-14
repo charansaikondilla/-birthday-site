@@ -244,7 +244,7 @@
     },
     viewLinkFor(slug) {
       const u = new URL(location.href);
-      u.pathname = u.pathname.replace(/[^/]*$/, 'index.html');
+      u.pathname = u.pathname.replace(/[^/]*$/, 'netflix.html');
       u.search = `?gift=${encodeURIComponent(slug)}`;
       return u.toString();
     },

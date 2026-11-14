@@ -1,4 +1,6 @@
-# Birthday — a streaming-style birthday site
+# Premiere — birthday landing page and streaming-style experience
+
+Open `/` or `index.html` for the full Premiere landing page. It has the hero, setup steps, a sample preview, details, and FAQ. The birthday experience lives on `netflix.html`. Shared gift links use `netflix.html?gift=<code>`; older `index.html?gift=<code>` links redirect there automatically.
 
 A private birthday website that plays exactly like the reference video, from start to end:
 
@@ -11,7 +13,12 @@ A private birthday website that plays exactly like the reference video, from sta
 Pure HTML / CSS / vanilla JavaScript. No build step, no backend, no dependencies. Deploys to GitHub Pages as-is.
 
 ```
-index.html       – the five screens + More Info modal
+index.html          – the Premiere landing page (a thin shell)
+landing-content.js  – ✏️ ALL landing page text, prices, FAQ and pictures — edit this one.
+                      Two audiences: index.html?for=couple and index.html?for=friends
+landing.js          – builds the landing page from landing-content.js
+landing.css         – the landing page design; colours are tokens at the top
+netflix.html     – the five birthday screens + More Info modal
 style.css        – the design, the intro animation, responsive rules
 script.js        – ✏️ config (ALL personal text & pictures) + the logic
 assets/netflix/  – the pictures used by the site (see below)
@@ -92,6 +99,8 @@ npm run dev
 # → http://localhost:5173
 ```
 
+On Windows PowerShell, if the `npm.ps1` wrapper is blocked by the execution policy, run `node scripts/dev-server.mjs` instead.
+
 Needs [Node.js](https://nodejs.org) (no `npm install` required). Any other static server works too
 (e.g. `python -m http.server 8000`). Port busy? `PORT=3000 npm run dev`.
 
@@ -123,7 +132,7 @@ free trial and then deleted.
 | --- | --- | --- |
 | `gift-create.html` | You (the organiser) | Type a name + a short message → get a unique shareable link **and** a QR code |
 | `gift-upload.html?gift=<code>` | Everyone you send the link/QR to | Drag-and-drop photos & videos — no account, no login. Shows the trial countdown. |
-| `index.html?gift=<code>` | The birthday person (or anyone) | The actual Netflix-style site, built from everyone's uploads |
+| `netflix.html?gift=<code>` | The birthday person (or anyone) | The actual Netflix-style site, built from everyone's uploads |
 
 **Two storage modes**, both already wired up and working:
 

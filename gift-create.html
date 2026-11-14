@@ -13,6 +13,7 @@
   <link rel="stylesheet" href="style.css">
   <script src="cloud-config.js"></script>
   <script src="gift-store.js"></script>
+  <script src="landing-content.js"></script>
   <script>
     // Auth check - redirect to login if not authenticated
     (function() {
@@ -133,6 +134,9 @@
       ? 'Demo mode — saved in this browser only'
       : 'Cloud mode — shared with everyone who has the link';
     $('#gc-mode-note').textContent = GiftStore.label;
+    // Prefill the name typed into the landing page preview.
+    try { const draft = sessionStorage.getItem('premiere-draft-name'); if (draft && !$('#gc-name').value) $('#gc-name').value = draft; } catch {}
+    try { const aud = window.SITE && SITE.audiences[sessionStorage.getItem('premiere-audience')]; if (aud) $('#gc-message').placeholder = aud.messagePlaceholder; } catch {}
 
     let countdownTimer = null;
     let currentGift = null;

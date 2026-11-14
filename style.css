@@ -133,6 +133,23 @@ svg { display: block; }
 
 /* ---------- HOME ---------- */
 .home { overflow-y: auto; }
+.site-return {
+  position: fixed;
+  z-index: 5;
+  top: 18px;
+  left: 18px;
+  padding: 9px 13px;
+  border: 1px solid rgba(255,255,255,.32);
+  border-radius: 999px;
+  background: rgba(0,0,0,.62);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .04em;
+  text-decoration: none;
+  backdrop-filter: blur(8px);
+}
+.site-return:hover, .site-return:focus-visible { background: rgba(229,9,20,.9); border-color: var(--red); }
 .hero, .hero-shade {
   position: absolute;
   inset: 0;
@@ -749,6 +766,7 @@ svg { display: block; }
 /* ---------- RESPONSIVE ---------- */
 @media (max-width: 720px) {
   :root { --side: 46px; }
+  .site-return { top: 12px; left: 12px; font-size: 10px; padding: 7px 10px; }
   .sidebar { gap: 16px; }
   .sidebar button { width: 20px; height: 20px; }
   .content { padding-left: calc(var(--side) + 8px); padding-right: 12px; }

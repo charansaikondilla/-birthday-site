@@ -1384,9 +1384,9 @@ function setEditMode(on) {
 $('#cz-fab').addEventListener('click', () => setEditMode(!isEditing()));
 $('#cz-more').addEventListener('click', openPanel);
 
-/* ---------- Gift mode: index.html?gift=<slug> loads a shared cloud gift ---------- */
-// Needs cloud-config.js + gift-store.js included in index.html; if they aren't
-// (e.g. someone deploys index.html on its own), gift links are simply ignored
+/* ---------- Gift mode: netflix.html?gift=<slug> loads a shared cloud gift ---------- */
+// Needs cloud-config.js + gift-store.js included in netflix.html; if they aren't
+// (e.g. someone deploys netflix.html on its own), gift links are simply ignored
 // and the site behaves exactly like the personal, single-owner version.
 function giftSlugFromURL() {
   try { return new URLSearchParams(location.search).get('gift'); } catch (e) { return null; }
