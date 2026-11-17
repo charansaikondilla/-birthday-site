@@ -2,6 +2,27 @@
 
 Open `/` or `index.html` for the full Premiere landing page. It has the hero, setup steps, a sample preview, details, and FAQ. The birthday experience lives on `netflix.html`. Shared gift links use `netflix.html?gift=<code>`; older `index.html?gift=<code>` links redirect there automatically.
 
+## ▶ The hero film (animated product video)
+
+The homepage hero plays a 32-second animated film of the whole product, in six chapters:
+**create the gift → add moments → send it at midnight → logo intro + "Who's watching?" → their own streaming page → the slideshow and love-note finale.**
+
+- It's drawn in HTML/CSS (`film.js` + `film.css`), not a video file, so it stays sharp, loads fast, and **shows the name the visitor types** under it, everywhere in the film, as they type.
+- Player controls: play/pause, six chapter segments (click one to jump to it), a timer, and full screen. Clicking the film also toggles play/pause.
+- It starts on its own when it scrolls into view, and pauses when it scrolls away or the tab is hidden. If the visitor's device asks for reduced motion, it waits for a tap.
+- Each audience gets its own version. Every line and picture is in `film: { … }` under each audience in `landing-content.js`, and `{name}` is replaced with the typed name.
+- `film.html` plays the film on a page of its own: `film.html?for=couple&name=Ananya`, or `?for=friends`.
+
+**Export it as an MP4** (Instagram, WhatsApp status, YouTube, ads). This needs Chrome or Edge, and ffmpeg:
+
+```bash
+npm run render-film                                   # → assets/video/premiere-film-couple.mp4 (1080p, 30 fps)
+node scripts/render-film.mjs --for friends            # friends & family version
+node scripts/render-film.mjs --name "Ananya"          # with a specific name
+node scripts/render-film.mjs --audio song.mp3         # add music (fades out at the end)
+```
+Each export also saves a poster image (`…-poster.jpg`). Exports are frame-perfect, because every frame is captured separately and none are dropped.
+
 A private birthday website that plays exactly like the reference video, from start to end:
 
 1. **Intro** — the red "N" logo builds stroke by stroke, holds, then bursts into colour ribbons.
@@ -26,14 +47,22 @@ assets/netflix/  – the pictures used by the site (see below)
 
 ## ✎ Edit live, right on the page
 
-Press the **Edit** pill (bottom-right). The page itself becomes editable — no panel, no forms:
+Press the **Edit** pill (bottom-right). A red **"Edit mode is on"** pill appears, and everything you can change gets a dashed outline (cards show **✎ Edit** when you point at them).
 
-- **Any photo, video, hero background, or profile picture** — click it, pick a new file, done. A small 🎥 badge marks what's clickable.
-- **Any visible text** — the title, the message, a row's name, a tile's title, the hero's "Featuring" name, a profile's label — click it, type, press **Enter** (or click away). It saves immediately, no Save button.
-- A one-time hint explains this when you turn editing on; press **Done editing** to go back to a normal, clickable site.
-- Tap **More settings** (appears next to Edit while you're editing) for anything that doesn't have an obvious on-page spot: adding a whole new row, More Info text, tags, player settings, export/import, reset.
+**Click anything and a popup asks what to change.** It shows what's there now; nothing on the page changes until you press **Save changes**. **Cancel**, **×** or **Esc** leave everything as it was — and if you'd typed something, it asks *"Throw those changes away?"* first.
 
-Editing the big title directly sets it as the whole title+name combined — for the separate "words before the name" / "name" fields, use More settings → Text.
+| Click on… | The popup lets you change… |
+|---|---|
+| a **card** (its picture or its title) | the photo/video (click it, or drag a file onto it), the hover preview, the text on the card, the "More Info" words, tags, the red progress bar · plus **Move left/right** and **Delete card** (with Undo) |
+| a **row name** | the name and card style (posters / wide / Top 10) · **Move up/down**, **Add photos/videos**, **Delete row** |
+| the **big picture** (or the "Change this background" chip) | that background photo/video and its "Featuring" name · **Add more backgrounds**, **Remove** |
+| the **big title** | the words before the name, their name, and the player title |
+| the **message**, **facts row**, **TOP 10 line**, **logo**, **footer** | that text |
+| a **profile** / the **"Who's watching?"** heading | the picture and name / the heading · **Add** or **Remove** a profile |
+| the **picture inside the player** (press Play while editing) | that slide · **Earlier/Later**, **Add after this one**, **Remove** — the slideshow pauses while the popup is open |
+| the **player title** / the **end credits** | title, time label, seconds per photo / credits title and closing lines |
+
+Saved changes go to the cloud when `cloud-config.js` has a Worker URL (if the cloud doesn't answer in time, the file is kept in this browser instead), otherwise to this browser — either way they survive a reload. Press **Done editing** to get the normal, clickable site back. **More settings** (next to Edit) still has the rest: start screen, auto-play, export/import, reset.
 
 ## ⚙ More settings (the full panel)
 
@@ -119,6 +148,23 @@ The page has `noindex`, so keep the repo private and share the link only with th
 - `prefers-reduced-motion` turns off the slow zoom on the slideshow.
 - This is a personal, non-commercial birthday greeting styled after a streaming app; the logo and
   icons are drawn in CSS/SVG in this project.
+
+## 🔒 Private gift pages: password, customizing, Razorpay
+
+Each gift is its own private page with its own link and password:
+
+1. **Create** (`gift-create.html`, signed in): name + a password (🎲 Suggest makes one). You get a ready-made message with her link and the password: **📲 Send on WhatsApp** or **📋 Copy**.
+2. **Customize** (**✎ Customize their page**): opens her page with a red creator bar. ✎ Edit works exactly as on your own page, but every change (text, photos, videos, music) saves to **her link**. **👁 See it as her** shows the password screen.
+3. **She opens the link**: a Netflix-style **Sign In** screen asks for the password. After 8 wrong tries it waits 15 minutes, and "Remember me" keeps her signed in. Then the logo intro plays with sound.
+4. **Keep it forever**: 💳 pays ₹199 with Razorpay. Otherwise unpaid gifts are deleted after the 7-day trial.
+5. **My gifts** (`my-gifts.html`): change a gift's password (old sign-ins stop working), resend it, pay, or customize it.
+
+**To switch it on, deploy the updated Worker and add your Razorpay keys. See [RAZORPAY.md](RAZORPAY.md).** Until then, gifts open without a password and nothing breaks.
+
+## 🔊 Sounds
+
+- The `assets/audio/premiere-intro.mp3` logo sting and the `assets/audio/happy-birthday-piano.mp3` slideshow song are original, generated by `npm run make-sounds`. The "Happy Birthday" melody is public domain.
+- To use her favourite song instead, press ✎ Edit, then **🎵 Change the music**. **🔊** in the player switches sound on and off.
 
 ## 🎁 The "Gift" product — one link, multiple people, auto-expiring trial
 

@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#000000">
+  <title>Premiere — the film</title>
+  <!--
+    The hero film on its own page.
+      film.html                          → watch it full-window
+      film.html?for=friends&name=Nuel    → friends version, with a name
+      film.html?render=1                 → bare canvas for scripts/render-film.mjs (MP4 export)
+  -->
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='15' fill='%23100d0c' stroke='%23d9ab70'/%3E%3Ctext x='16' y='22' font-family='Georgia' font-size='18' text-anchor='middle' fill='%23f1d4a9'%3EP%3C/text%3E%3C/svg%3E">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@700&family=DM+Sans:wght@400;500;600;700;800&family=Playfair+Display:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="film.css">
+  <style>
+    :root { color-scheme: dark; }
+    body { --gold: #d9ab70; --gold-light: #f1d4a9; --glow: rgba(161,88,49,.22); }
+    body[data-audience="couple"] { --gold: #e3a092; --gold-light: #f7d2c8; --glow: rgba(186,82,92,.28); }
+    html, body { height: 100%; margin: 0; background: #000; color: #f5eee5; font-family: "DM Sans", system-ui, sans-serif; }
+    .stage { display: flex; flex-direction: column; justify-content: center; gap: 6px; width: min(100% - 32px, calc((100vh - 120px) * 16 / 9), 1400px); min-height: 100%; margin: 0 auto; padding-block: 16px; }
+    #film { width: 100%; aspect-ratio: 16 / 9; border-radius: 12px; }
+    .bar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; padding: 6px 4px 0; font-size: 13px; }
+    .bar a { color: #f1d4a9; font-weight: 700; text-decoration: none; }
+    .bar label { display: flex; align-items: center; gap: 8px; color: #bcad9f; }
+    .bar input { width: 170px; padding: 8px 12px; border: 1px solid rgba(255,255,255,.2); border-radius: 999px; background: rgba(255,255,255,.06); color: #fff; font: inherit; }
+    /* export mode: nothing but the canvas, edge to edge */
+    body.is-render .stage { width: 100vw; height: 100vh; padding: 0; gap: 0; }
+    body.is-render #film { width: 100vw; height: 100vh; aspect-ratio: auto; border-radius: 0; cursor: default; }
+  </style>
+</head>
+<body>
+  <main class="stage">
+    <div id="film"></div>
+    <div id="film-ui"></div>
+    <div class="bar" id="bar">
+      <a href="index.html">← premiere.</a>
+      <label>Their name <input id="name" maxlength="24" autocomplete="off"></label>
+      <a href="gift-create.html">Create a gift ↗</a>
+    </div>
+  </main>
+  <script src="landing-content.js"></script>
+  <script src="film.js"></script>
+  <script>
+    (() => {
+      const q = new URLSearchParams(location.search);
+      const S = window.SITE || { audiences: {}, brand: {} };
+      const keys = Object.keys(S.audiences);
+      const aud = keys.includes(q.get('for')) ? q.get('for') : (S.defaultAudience || keys[0] || 'couple');
+      const A = S.audiences[aud] || { hero: {} };
+      const render = q.has('render');
+      document.body.dataset.audience = aud;
+      document.body.classList.toggle('is-render', render);
+      if (render) { document.getElementById('bar').remove(); document.getElementById('film-ui').remove(); }
+
+      const name = (q.get('name') || '').trim().slice(0, 24);
+      const film = window.PremiereFilm.mount(document.getElementById('film'), {
+        content: Object.assign({ brand: S.brand.name, mark: S.brand.mark, defaultName: A.hero.previewDefaultName, title: A.hero.previewTitle }, A.film || {}),
+        name: name || A.hero.previewDefaultName,
+        autoplay: !render,
+        render,
+        ui: render ? null : document.getElementById('film-ui'),
+      });
+      window.__film = film;
+      window.__filmReady = film.ready();
+
+      const input = document.getElementById('name');
+      if (input) {
+        input.value = name;
+        input.placeholder = A.hero.previewPlaceholder || 'Type a name';
+        input.addEventListener('input', () => film.setName(input.value.trim() || A.hero.previewDefaultName));
+      }
+    })();
+  </script>
+</body>
+</html>

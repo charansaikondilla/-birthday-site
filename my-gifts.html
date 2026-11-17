@@ -2,102 +2,189 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#000000">
 <meta name="robots" content="noindex,nofollow">
 <title>My Gifts</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 11 20'%3E%3Crect width='11' height='20' fill='%23000'/%3E%3Cpath d='M0 0h3.3v20H0z' fill='%23e50914'/%3E%3Cpath d='M7.7 0H11v20H7.7z' fill='%23e50914'/%3E%3Cpath d='M0 0h3.3L11 20H7.7z' fill='%23b1060f'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Caveat:wght@700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Montserrat:wght@400;500;600;700;800&family=Caveat:wght@700&display=swap" rel="stylesheet">
 <style>
+  :root { --red: #e50914; --line: #2a2a2a; --muted: #a3a3a3; }
   * { box-sizing: border-box; }
-  body { margin: 0; background: #0B0908; color: #F2EAE0; font-family: Manrope, sans-serif; min-height: 100vh; }
-  header { display: flex; align-items: center; justify-content: space-between; padding: 20px clamp(20px,4vw,40px); border-bottom: 1px solid #2A2320; }
-  header h1 { font-size: 20px; margin: 0; }
-  header .who { font-size: 13px; color: #A79C91; }
-  .signout { background: none; border: 1px solid #2A2320; color: #F2EAE0; padding: 8px 14px; border-radius: 6px; cursor: pointer; font-size: 13px; }
-  .signout:hover { border-color: #E9A845; }
-  main { max-width: 760px; margin: 0 auto; padding: clamp(20px,4vw,40px); }
-  .new-gift { display: inline-block; background: #E9A845; color: #0B0908; font-weight: 700; padding: 12px 20px; border-radius: 6px; text-decoration: none; margin-bottom: 28px; }
-  .new-gift:hover { background: #C4832A; }
-  .card { background: #141110; border: 1px solid #2A2320; border-radius: 8px; padding: 18px 20px; margin-bottom: 14px; }
-  .card-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
-  .card h2 { font-family: Caveat, cursive; font-size: 26px; margin: 0; }
-  .badge { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; padding: 4px 8px; border-radius: 4px; }
-  .badge.paid { background: rgba(26,156,74,.15); color: #3ecb72; }
-  .badge.trial { background: rgba(233,168,69,.15); color: #E9A845; }
-  .card p.meta { color: #A79C91; font-size: 12.5px; margin: 6px 0 12px; }
-  .actions { display: flex; gap: 10px; flex-wrap: wrap; }
-  .actions a, .actions button { font-size: 13px; padding: 8px 12px; border-radius: 6px; text-decoration: none; border: 1px solid #2A2320; color: #F2EAE0; background: transparent; cursor: pointer; }
-  .actions a:hover, .actions button:hover { border-color: #E9A845; }
-  .empty { color: #A79C91; text-align: center; padding: 60px 0; }
-  .status { text-align: center; color: #A79C91; padding: 60px 0; }
+  [hidden] { display: none !important; }
+  body { margin: 0; min-height: 100vh; background: #000; color: #fff; font-family: Montserrat, "Segoe UI", Arial, sans-serif; -webkit-font-smoothing: antialiased; }
+  button { font: inherit; cursor: pointer; }
+  header { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 18px clamp(18px, 4vw, 48px); background: linear-gradient(180deg, rgba(0,0,0,.9), rgba(0,0,0,0)); }
+  .logo { font-family: "Bebas Neue", Montserrat, sans-serif; font-size: 34px; color: var(--red); letter-spacing: .04em; text-decoration: none; line-height: 1; }
+  .who { color: var(--muted); font-size: 13px; }
+  .signout { padding: 7px 14px; border: 1px solid #444; border-radius: 4px; background: none; color: #fff; font-size: 13px; }
+  .signout:hover { border-color: #fff; }
+  main { max-width: 820px; margin: 0 auto; padding: 8px clamp(16px, 4vw, 40px) 60px; }
+  h1 { margin: 10px 0 6px; font-size: clamp(26px, 4vw, 34px); }
+  .lead { margin: 0 0 22px; color: var(--muted); font-size: 14.5px; line-height: 1.55; }
+  .new-gift { display: inline-flex; align-items: center; gap: 8px; margin-bottom: 26px; padding: 12px 20px; border-radius: 4px; background: var(--red); color: #fff; font-weight: 700; text-decoration: none; }
+  .new-gift:hover { background: #f6121d; }
+  .worker-note { margin: 0 0 20px; padding: 12px 14px; border: 1px solid #5a4500; border-radius: 6px; background: #1f1800; color: #ffd36b; font-size: 13px; line-height: 1.5; }
+  .card { margin-bottom: 16px; padding: 20px; border: 1px solid var(--line); border-radius: 8px; background: #141414; }
+  .card-top { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; }
+  .card h2 { margin: 0; font-family: Caveat, cursive; font-size: 30px; font-weight: 700; }
+  .badges { display: flex; flex-wrap: wrap; gap: 6px; }
+  .badge { padding: 4px 8px; border-radius: 4px; font-size: 11px; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; }
+  .badge.paid { background: rgba(70, 211, 105, .14); color: #46d369; }
+  .badge.trial { background: rgba(255, 193, 7, .14); color: #ffc107; }
+  .badge.lock { background: rgba(255, 255, 255, .08); color: #ddd; }
+  .badge.warn { background: rgba(229, 9, 20, .18); color: #ff6b72; }
+  .meta { margin: 6px 0 14px; color: var(--muted); font-size: 12.5px; }
+  .actions { display: flex; flex-wrap: wrap; gap: 8px; }
+  .actions a, .actions button { display: inline-flex; align-items: center; gap: 6px; padding: 9px 13px; border: 1px solid #3a3a3a; border-radius: 4px; background: transparent; color: #fff; font-size: 13px; font-weight: 600; text-decoration: none; }
+  .actions a:hover, .actions button:hover { border-color: #fff; background: rgba(255, 255, 255, .06); }
+  .actions .primary { border-color: #fff; background: #fff; color: #000; }
+  .actions .primary:hover { background: #ddd; }
+  .actions .pay { border-color: var(--red); background: var(--red); }
+  .actions .pay:hover { background: #f6121d; }
+  .panel { margin-top: 14px; padding: 14px; border: 1px solid #333; border-radius: 6px; background: #0d0d0d; }
+  .panel label { display: block; margin-bottom: 6px; color: var(--muted); font-size: 12px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; }
+  .row { display: flex; flex-wrap: wrap; gap: 8px; }
+  .row input { flex: 1 1 200px; min-width: 0; padding: 11px 12px; border: 1px solid #444; border-radius: 4px; background: #161616; color: #fff; font: inherit; font-size: 15px; }
+  .row input:focus { outline: 2px solid #fff; outline-offset: 1px; }
+  .row button { padding: 0 14px; border: 0; border-radius: 4px; background: #333; color: #fff; font-weight: 700; font-size: 13px; min-height: 42px; }
+  .row button.go { background: var(--red); }
+  .share { white-space: pre-wrap; margin: 10px 0; padding: 12px; border-radius: 6px; background: #1b1b1b; color: #ddd; font-size: 13px; line-height: 1.5; }
+  .wa { background: #25d366 !important; color: #052e16 !important; border-color: #25d366 !important; }
+  .msg { margin: 8px 0 0; font-size: 13px; }
+  .msg.ok { color: #46d369; } .msg.bad { color: #ff7b7b; }
+  .empty, .status { padding: 60px 0; color: var(--muted); text-align: center; }
 </style>
 </head>
 <body>
   <header>
-    <h1>🎁 My Gifts</h1>
+    <a class="logo" href="index.html">PREMIERE</a>
     <div style="display:flex;align-items:center;gap:14px">
       <span class="who" id="who"></span>
-      <button class="signout" id="signout">Sign out</button>
+      <button class="signout" id="signout" type="button">Sign out</button>
     </div>
   </header>
   <main>
+    <h1>My gifts</h1>
+    <p class="lead">Each gift is its own private page with its own link and password. Customize it, send her the link and the password, and keep it forever with a one-time payment.</p>
     <a class="new-gift" href="gift-create.html">＋ Create a new gift</a>
+    <p class="worker-note" id="worker-note" hidden></p>
     <div id="list"><p class="status">Loading your gifts…</p></div>
   </main>
-
   <script src="cloud-config.js"></script>
   <script src="gift-store.js"></script>
   <script>
-    const list = document.getElementById('list');
-
-    if (!GiftStore.Auth.isSignedIn() && !sessionStorage.getItem('auth-token') && !localStorage.getItem('auth-token')) {
-      window.location.href = 'login.html';
-    }
-
+    const $ = (s, r = document) => r.querySelector(s);
+    const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+    const list = $('#list');
+    if (!GiftStore.Auth.isSignedIn() && !sessionStorage.getItem('auth-token') && !localStorage.getItem('auth-token')) location.href = 'login.html';
     const session = GiftStore.Auth.getSession();
-    document.getElementById('who').textContent = session ? (session.name || session.email) : '';
-
-    document.getElementById('signout').addEventListener('click', () => {
+    $('#who').textContent = session ? (session.name || session.email) : '';
+    $('#signout').addEventListener('click', () => {
       GiftStore.Auth.signOut();
       sessionStorage.removeItem('auth-token');
       localStorage.removeItem('auth-token');
-      window.location.href = 'login.html';
+      location.href = 'login.html';
+    });
+    const WORDS = ['rose', 'moon', 'star', 'cake', 'honey', 'sunny', 'candy', 'dream', 'angel', 'smile', 'sweet', 'magic', 'cherry', 'pearl', 'bunny'];
+    const suggest = () => `${WORDS[Math.floor(Math.random() * WORDS.length)]}-${WORDS[Math.floor(Math.random() * WORDS.length)]}${10 + Math.floor(Math.random() * 90)}`;
+    const copy = async (text, btn, label) => {
+      try { await navigator.clipboard.writeText(text); btn.textContent = 'Copied ✓'; } catch { btn.textContent = 'Select & copy above'; }
+      setTimeout(() => { btn.textContent = label; }, 2000);
+    };
+    let info = { v: 0, payments: null };
+    let gifts = [];
+
+    function card(g) {
+      const expired = !g.paid && GiftStore.isExpired(g.createdAt);
+      const price = info.payments && info.payments.priceInr ? `₹${info.payments.priceInr}` : '';
+      const badges = [
+        g.paid ? '<span class="badge paid">Paid — kept forever</span>' : `<span class="badge trial">${expired ? 'Trial expired' : 'Free trial · ' + esc(GiftStore.fmtLeft(g.createdAt))}</span>`,
+        info.v >= 2 ? (g.hasPassword ? '<span class="badge lock">🔒 Password set</span>' : '<span class="badge warn">No password yet</span>') : '',
+      ].join('');
+      const view = GiftStore.viewLinkFor(g.slug);
+      return `<div class="card" data-slug="${esc(g.slug)}">
+        <div class="card-top"><h2>${g.name ? `For ${esc(g.name)}` : 'Untitled gift'}</h2><div class="badges">${badges}</div></div>
+        <p class="meta">Created ${esc(new Date(g.createdAt).toLocaleDateString())}${g.paidAt ? ' · paid ' + esc(new Date(g.paidAt).toLocaleDateString()) : ''}</p>
+        <div class="actions">
+          <a class="primary" href="${esc(view)}">✎ Customize her page</a>
+          <a href="${esc(view)}&amp;preview=1" target="_blank" rel="noopener">👁 See it as her</a>
+          ${info.v >= 2 ? '<button type="button" data-act="password">🔑 Password &amp; send to her</button>' : `<button type="button" data-act="copy-view">🔗 Copy her link</button>`}
+          <button type="button" data-act="copy-upload">＋ Friends' photo link</button>
+          ${!g.paid ? `<button type="button" class="pay" data-act="pay">💳 Keep forever${price ? ' · ' + price : ''}</button>` : ''}
+        </div>
+        <div class="panel" data-panel hidden></div>
+        <p class="msg" data-msg hidden></p>
+      </div>`;
+    }
+    function paint() {
+      list.innerHTML = gifts.length ? gifts.map(card).join('') : '<p class="empty">No gifts yet — create your first one above.</p>';
+    }
+    function say(el, text, ok) { const m = $('[data-msg]', el); m.textContent = text; m.className = `msg ${ok ? 'ok' : 'bad'}`; m.hidden = !text; }
+
+    list.addEventListener('click', async (e) => {
+      const b = e.target.closest('button[data-act]');
+      if (!b) return;
+      const el = b.closest('.card'), g = gifts.find((x) => x.slug === el.dataset.slug);
+      if (!g) return;
+      const act = b.dataset.act, panel = $('[data-panel]', el);
+      say(el, '', true);
+      if (act === 'copy-view') return copy(GiftStore.viewLinkFor(g.slug), b, '🔗 Copy her link');
+      if (act === 'copy-upload') return copy(GiftStore.linkFor(g.slug), b, "＋ Friends' photo link");
+      if (act === 'password') {
+        panel.hidden = !panel.hidden;
+        if (panel.hidden) return;
+        panel.innerHTML = `<label for="pw-${esc(g.slug)}">${g.hasPassword ? 'New password for her' : 'Choose a password for her'}</label>
+          <div class="row"><input id="pw-${esc(g.slug)}" type="text" maxlength="64" autocomplete="off" value="${esc(suggest())}" aria-label="Password">
+            <button type="button" data-act="suggest">🎲 Another</button><button type="button" class="go" data-act="save-pw">Save password</button></div>
+          <p class="msg" style="color:#8c8c8c">She types this on the sign-in screen. At least 4 characters — easy for her to type, hard for others to guess.</p>`;
+        $('input', panel).focus();
+        return;
+      }
+      if (act === 'suggest') { $('input', panel).value = suggest(); return; }
+      if (act === 'save-pw') {
+        const pw = $('input', panel).value.trim();
+        if (pw.length < 4) return say(el, 'The password needs at least 4 characters.', false);
+        b.disabled = true; b.textContent = 'Saving…';
+        try {
+          const fresh = await GiftStore.setGiftPassword(g.slug, pw);
+          Object.assign(g, fresh || {}, { hasPassword: true });
+          const text = GiftStore.shareMessage(g, pw);
+          panel.innerHTML = `<label>Send her this</label><div class="share">${esc(text)}</div>
+            <div class="actions"><a class="wa" href="https://wa.me/?text=${encodeURIComponent(text)}" target="_blank" rel="noopener">📲 Send on WhatsApp</a>
+            <button type="button" data-act="copy-msg">📋 Copy message</button></div>
+            <p class="msg" style="color:#8c8c8c">Old password and old "remember me" sign-ins stop working now.</p>`;
+          panel.dataset.text = text;
+          el.querySelector('.badges').innerHTML = el.querySelector('.badges').innerHTML.replace(/<span class="badge warn">[^<]*<\/span>/, '<span class="badge lock">🔒 Password set</span>');
+          say(el, 'Password saved ✓', true);
+        } catch (err) { say(el, err.message || 'Could not save the password.', false); b.disabled = false; b.textContent = 'Save password'; }
+        return;
+      }
+      if (act === 'copy-msg') return copy(panel.dataset.text || '', b, '📋 Copy message');
+      if (act === 'pay') {
+        b.disabled = true; b.textContent = 'Opening Razorpay…';
+        const reset = () => { b.disabled = false; b.textContent = `💳 Keep forever${info.payments && info.payments.priceInr ? ' · ₹' + info.payments.priceInr : ''}`; };
+        GiftStore.payWithRazorpay(g, {
+          onPaid: (fresh) => { Object.assign(g, fresh || {}, { paid: true }); paint(); say(list.querySelector(`[data-slug="${CSS.escape(g.slug)}"]`), 'Payment received ✓ — this gift is kept forever.', true); },
+          onError: (err) => { reset(); say(el, err.message || 'The payment did not go through.', false); },
+          onClose: reset,
+        });
+      }
     });
 
     (async () => {
       try {
-        const gifts = await GiftStore.listMyGifts();
-        if (!gifts.length) { list.innerHTML = '<p class="empty">No gifts yet — create your first one above.</p>'; return; }
-        list.innerHTML = gifts.map((g) => {
-          const paid = g.paid;
-          const expired = !paid && GiftStore.isExpired(g.createdAt);
-          const badge = paid ? '<span class="badge paid">Paid — kept forever</span>' : `<span class="badge trial">${expired ? 'Trial expired' : GiftStore.fmtLeft(g.createdAt)}</span>`;
-          const shareLink = GiftStore.linkFor(g.slug);
-          const viewLink = GiftStore.viewLinkFor(g.slug);
-          return `
-            <div class="card">
-              <div class="card-top">
-                <h2>${g.name ? `For ${g.name}` : 'Untitled gift'}</h2>
-                ${badge}
-              </div>
-              <p class="meta">Created ${new Date(g.createdAt).toLocaleDateString()}</p>
-              <div class="actions">
-                <a href="${viewLink}" target="_blank" rel="noopener">▶ View</a>
-                <a href="${shareLink}" target="_blank" rel="noopener">＋ Add photos</a>
-                <button data-copy="${shareLink}">Copy share link</button>
-              </div>
-            </div>`;
-        }).join('');
-        list.querySelectorAll('[data-copy]').forEach((btn) => {
-          btn.addEventListener('click', async () => {
-            try { await navigator.clipboard.writeText(btn.dataset.copy); btn.textContent = 'Copied ✓'; }
-            catch { /* clipboard unavailable — link is already visible via the other buttons */ }
-            setTimeout(() => { btn.textContent = 'Copy share link'; }, 2000);
-          });
-        });
+        [info, gifts] = await Promise.all([GiftStore.info(), GiftStore.listMyGifts()]);
+        if (GiftStore.mode === 'cloud' && info.v < 2) {
+          const n = $('#worker-note');
+          n.textContent = 'Passwords and Razorpay payments switch on once the updated Worker is deployed (see RAZORPAY.md). Until then gifts open without a password.';
+          n.hidden = false;
+        }
+        paint();
       } catch (e) {
-        list.innerHTML = `<p class="status">Could not load your gifts: ${e.message || 'unknown error'}</p>`;
+        list.innerHTML = `<p class="status">Could not load your gifts: ${esc(e.message || 'unknown error')}</p>`;
       }
     })();
   </script>

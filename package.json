@@ -7,7 +7,9 @@
   "scripts": {
     "dev": "node scripts/dev-server.mjs",
     "start": "node scripts/dev-server.mjs",
-    "build-manifests": "node scripts/build-manifests.mjs"
+    "build-manifests": "node scripts/build-manifests.mjs",
+    "render-film": "node scripts/render-film.mjs",
+    "make-sounds": "node scripts/make-sounds.mjs"
   },
   "engines": {
     "node": ">=18"

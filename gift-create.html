@@ -69,6 +69,17 @@
     .gc-buy { background: var(--red); color: #fff; }
     .gc-buy:hover { background: #f6121d; }
     .gc-note { font-size: 12px; color: #777; margin-top: 20px; line-height: 1.6; text-align: center; }
+    .gc-pw-row { display: flex; gap: 8px; }
+    .gc-pw-row input { flex: 1; min-width: 0; padding: 12px 13px; border-radius: 6px; border: 1px solid #333; background: #0f0f0f; color: #fff; font: inherit; font-size: 15px; }
+    .gc-pw-row input:focus { outline: none; border-color: #777; }
+    .gc-pw-row button { flex: 0 0 auto; padding: 0 14px; border-radius: 6px; border: 0; background: #2f2f2f; color: #fff; font-weight: 700; font-size: 13px; cursor: pointer; }
+    .gc-pw-row button:hover { background: #3d3d3d; }
+    .gc-hint { display: block; margin-top: 7px; color: #8c8c8c; font-size: 12px; line-height: 1.5; }
+    .gc-step-title { margin: 0 0 12px; color: #9a9a9a; font-size: 12px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; }
+    .gc-share { white-space: pre-wrap; text-align: left; padding: 14px; border-radius: 8px; background: #0b0b0b; border: 1px solid #262626; color: #e5e5e5; font-size: 14px; line-height: 1.55; }
+    .gc-actions .gc-wa { background: #25d366; color: #052e16; }
+    .gc-actions .gc-wa:hover { background: #1fb457; }
+    .gc-result .gc-card + .gc-card { margin-top: 18px; }
   </style>
 </head>
 <body>
@@ -87,6 +98,10 @@
         <div class="gc-card">
           <label class="gc-field"><span>Who is it for?</span><input id="gc-name" type="text" placeholder="e.g. Nuel" maxlength="60"></label>
           <label class="gc-field"><span>A line for them (optional)</span><textarea id="gc-message" placeholder="Happy Birthday! We all put this together for you…" maxlength="240"></textarea></label>
+          <div class="gc-field"><label for="gc-password"><span>Password for them</span></label>
+            <div class="gc-pw-row"><input id="gc-password" type="text" maxlength="64" autocomplete="off" placeholder="e.g. rose-moon27">
+              <button id="gc-suggest" type="button">🎲 Suggest</button></div>
+            <small class="gc-hint">They type this on a Netflix-style sign-in screen to open their page. At least 4 characters.</small></div>
           <button id="gc-submit" class="gc-go" type="button">Create the gift link →</button>
           <p id="gc-error" class="gc-error" hidden></p>
         </div>
@@ -96,7 +111,7 @@
             <li><b>1</b><span>You create the link and get a QR code — takes 10 seconds.</span></li>
             <li><b>2</b><span>Share it with as many people as you like; each one can add their own photos and videos.</span></li>
             <li><b>3</b><span>The birthday person opens the finished site and presses Play.</span></li>
-            <li><b>4</b><span>Everything is kept for <span id="gc-trial-days">7</span> days on a free trial, then it's automatically deleted — buy the gift to keep it and unlock the full site.</span></li>
+            <li><b>4</b><span>Everything is kept for <span id="gc-trial-days">7</span> days on a free trial, then it's automatically deleted — pay once<span id="gc-price-note"></span> to keep it forever.</span></li>
           </ul>
         </div>
       </div>
@@ -105,18 +120,33 @@
         <div class="gc-card" style="text-align:center">
           <p style="margin:0 0 4px;color:#9a9a9a;font-size:12px;text-transform:uppercase;letter-spacing:.05em;font-weight:700">Your gift is ready</p>
           <h2 id="gc-result-name" style="font-family:var(--hand);font-size:clamp(30px,5vw,42px);margin:2px 0 16px"></h2>
-          <div id="gc-qr" class="gc-qr"></div>
           <p class="gc-countdown" id="gc-countdown"></p>
-          <p style="color:#9a9a9a;font-size:12.5px;margin:0 0 8px">Share this link so people can add photos &amp; videos:</p>
-          <div class="gc-link-row"><input id="gc-link" readonly><button id="gc-copy" type="button">Copy</button></div>
-          <div class="gc-actions">
-            <a id="gc-view" class="primary" href="#" target="_blank" rel="noopener">▶ Open the birthday site</a>
-            <a id="gc-upload-self" class="ghost" href="#" target="_blank" rel="noopener">＋ Add photos myself</a>
+          <div class="gc-actions" style="margin-top:0">
+            <a id="gc-customize" class="primary" href="#">✎ Customize their page</a>
+            <a id="gc-view" class="ghost" href="#" target="_blank" rel="noopener">👁 See it as them</a>
           </div>
           <div class="gc-actions">
-            <button id="gc-buy" class="gc-buy" type="button">🎁 Buy this gift (keep it forever)</button>
+            <button id="gc-buy" class="gc-buy" type="button">💳 Keep it forever</button>
           </div>
           <p id="gc-paid-note" style="display:none;color:#1a9c4a;font-size:13px;font-weight:700;margin:8px 0 0">✓ Paid — this gift is kept forever</p>
+          <p id="gc-pay-msg" class="gc-error" hidden></p>
+        </div>
+        <div class="gc-card gc-send">
+          <p class="gc-step-title">Send this to them</p>
+          <div class="gc-share" id="gc-share"></div>
+          <div class="gc-actions" style="margin-top:12px">
+            <a id="gc-wa" class="gc-wa" href="#" target="_blank" rel="noopener">📲 Send on WhatsApp</a>
+            <button id="gc-copy-msg" class="ghost" type="button">📋 Copy message</button>
+          </div>
+          <p class="gc-hint" style="margin-top:12px">Only someone with the password can open the page. You can change it any time in <a href="my-gifts.html" style="color:#ccc">My gifts</a>.</p>
+        </div>
+        <div class="gc-card" style="text-align:center">
+          <p class="gc-step-title">Friends &amp; family can add photos here</p>
+          <div id="gc-qr" class="gc-qr"></div>
+          <div class="gc-link-row"><input id="gc-link" readonly aria-label="Link for friends to add photos"><button id="gc-copy" type="button">Copy</button></div>
+          <div class="gc-actions">
+            <a id="gc-upload-self" class="ghost" href="#" target="_blank" rel="noopener">＋ Add photos myself</a>
+          </div>
         </div>
       </div>
 
@@ -140,19 +170,37 @@
 
     let countdownTimer = null;
     let currentGift = null;
+    let currentPassword = '';
+    let info = { v: 0, payments: null };
+    const WORDS = ['rose', 'moon', 'star', 'cake', 'honey', 'sunny', 'candy', 'dream', 'angel', 'smile', 'sweet', 'magic', 'cherry', 'pearl', 'bunny'];
+    const suggest = () => `${WORDS[Math.floor(Math.random() * WORDS.length)]}-${WORDS[Math.floor(Math.random() * WORDS.length)]}${10 + Math.floor(Math.random() * 90)}`;
+    $('#gc-suggest').addEventListener('click', () => { $('#gc-password').value = suggest(); $('#gc-password').focus(); });
+    const priceText = () => (info.payments && info.payments.razorpay && info.payments.priceInr ? ` · ₹${info.payments.priceInr}` : '');
+    GiftStore.info().then((i) => {
+      info = i;
+      if (priceText()) $('#gc-price-note').textContent = ` (₹${info.payments.priceInr})`;
+      if (GiftStore.mode === 'cloud' && info.v < 2) $('.gc-hint').textContent = 'Passwords switch on once the updated Worker is deployed (see RAZORPAY.md) — until then the page opens without one.';
+    });
     function paintPaid(gift) {
       $('#gc-buy').style.display = gift.paid ? 'none' : '';
+      $('#gc-buy').textContent = `💳 Keep it forever${priceText()}`;
       $('#gc-paid-note').style.display = gift.paid ? '' : 'none';
     }
+    function payMsg(text) { const m = $('#gc-pay-msg'); m.textContent = text || ''; m.hidden = !text; }
     function showResult(gift) {
       currentGift = gift;
       $('.gc-create').classList.add('is-hidden');
       $('#gc-result').classList.add('is-on');
       $('#gc-result-name').textContent = gift.name ? `For ${gift.name}` : 'Your gift';
       const link = GiftStore.linkFor(gift.slug);
+      const view = GiftStore.viewLinkFor(gift.slug);
       $('#gc-link').value = link;
-      $('#gc-view').href = GiftStore.viewLinkFor(gift.slug);
+      $('#gc-customize').href = view;
+      $('#gc-view').href = `${view}&preview=1`;
       $('#gc-upload-self').href = link;
+      const text = GiftStore.shareMessage(gift, currentPassword);
+      $('#gc-share').textContent = text;
+      $('#gc-wa').href = `https://wa.me/?text=${encodeURIComponent(text)}`;
       paintPaid(gift);
 
       // Everything below the QR code must still work even if the QR library
@@ -178,13 +226,32 @@
       catch { $('#gc-link').select(); document.execCommand('copy'); $('#gc-copy').textContent = 'Copied ✓'; }
       setTimeout(() => { $('#gc-copy').textContent = 'Copy'; }, 2000);
     });
+    $('#gc-copy-msg').addEventListener('click', async () => {
+      const b = $('#gc-copy-msg');
+      try { await navigator.clipboard.writeText($('#gc-share').textContent); b.textContent = 'Copied ✓'; }
+      catch { b.textContent = 'Select the message & copy it'; }
+      setTimeout(() => { b.textContent = '📋 Copy message'; }, 2000);
+    });
     $('#gc-buy').addEventListener('click', () => {
-      const base = (window.CLOUD && window.CLOUD.STRIPE_PAYMENT_LINK) || '';
-      if (!base) {
-        alert('Payment isn\'t set up yet on this site.\n\nThe owner needs to create a free Stripe Payment Link and add it to cloud-config.js — no code required, just a URL to paste in.');
+      if (!currentGift) return;
+      payMsg('');
+      // Razorpay (when the Worker has its keys) — the normal way.
+      if (info.payments && info.payments.razorpay) {
+        const b = $('#gc-buy');
+        b.disabled = true; b.textContent = 'Opening Razorpay…';
+        const reset = () => { b.disabled = false; paintPaid(currentGift); };
+        GiftStore.payWithRazorpay(currentGift, {
+          onPaid: (fresh) => { currentGift = { ...currentGift, ...(fresh || {}), paid: true }; reset(); showResult(currentGift); },
+          onError: (e) => { reset(); payMsg(e.message || 'The payment did not go through — no money was taken.'); },
+          onClose: reset,
+        });
         return;
       }
-      if (!currentGift) return;
+      const base = (window.CLOUD && window.CLOUD.STRIPE_PAYMENT_LINK) || '';
+      if (!base) {
+        payMsg('Payments aren\'t switched on yet. Add your Razorpay keys to the Worker (see RAZORPAY.md) and this button starts working.');
+        return;
+      }
       // client_reference_id tells Stripe which gift this payment is for —
       // the Worker's webhook reads it back to mark THAT one gift paid.
       const sep = base.includes('?') ? '&' : '?';
@@ -214,10 +281,20 @@
     $('#gc-submit').addEventListener('click', async () => {
       const btn = $('#gc-submit'), err = $('#gc-error');
       const name = $('#gc-name').value.trim(), message = $('#gc-message').value.trim();
+      const password = $('#gc-password').value.trim();
       err.hidden = true;
+      info = await GiftStore.info(); // (a fast, cached call) — so a quick click never skips the check
+      const needsPassword = GiftStore.mode === 'demo' || info.v >= 2;
+      if (needsPassword && password.length < 4) {
+        err.textContent = 'Choose a password with at least 4 characters (or press 🎲 Suggest) — it keeps the page private.';
+        err.hidden = false;
+        $('#gc-password').focus();
+        return;
+      }
       btn.disabled = true; btn.textContent = 'Creating…';
       try {
-        const gift = await GiftStore.createGift({ name, message });
+        const gift = await GiftStore.createGift({ name, message, password });
+        currentPassword = needsPassword ? password : '';
         showResult(gift);
       } catch (e) {
         err.textContent = e.message || 'Something went wrong creating the gift — please try again.';

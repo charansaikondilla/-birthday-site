@@ -283,12 +283,9 @@
 
         // Also trigger the One Tap auto-prompt so a returning user is
         // signed in automatically without clicking the button.
-        google.accounts.id.prompt((notification) => {
-          if (notification.isNotDisplayed && notification.isNotDisplayed()) {
-            // Silently ignore (e.g. user dismissed it before, or FedCM unavailable) —
-            // the visible button is still there as a fallback.
-          }
-        });
+        // No status callback: Google deprecated the isNotDisplayed()/isSkippedMoment()
+        // methods under FedCM. If One Tap can't show, the button above is the fallback.
+        google.accounts.id.prompt();
       }
 
       // The script in <head> is async; poll briefly in case it hasn't

@@ -68,21 +68,14 @@
           <ul class="hero-chips swap" data-slot="chips" aria-label="What is included"></ul>
         </div>
         <div class="hero-visual">
-          <div class="device" aria-label="Live preview of a birthday page">
-            <div class="device-screen">
-              <div data-slot="slides"></div>
-              <div class="device-tint" aria-hidden="true"></div>
-              <div class="device-top"><span class="device-n">${esc(S.brand.mark)}</span><span>SERIES</span></div>
-              <div class="device-copy">
-                <p class="device-title"><span data-slot="preview-title"></span><br><span id="preview-name"></span></p>
-                <p class="device-meta"><span class="match">99% Match</span><span>2026</span><span>HD+</span></p>
-                <span class="device-play">▶&nbsp; Play</span>
-              </div>
-              <div class="device-dots" data-slot="dots" aria-hidden="true"></div>
+          <div class="device" role="region" aria-label="A short animated film showing how a birthday gift is made and opened">
+            <div class="device-screen" id="hero-film">
+              <img class="film-poster" src="${esc(A().hero.images[0])}" alt="">
             </div>
+            <div id="hero-film-ui"></div>
           </div>
           <label class="name-try">
-            <span>Try it — who’s the birthday star?</span>
+            <span>Type their name — the film updates</span>
             <input id="name-try" type="text" maxlength="24" autocomplete="off">
           </label>
         </div>
@@ -227,25 +220,29 @@
   const slot = name => $$(`[data-slot="${name}"]`);
   const fill = (name, html) => slot(name).forEach(el => { el.innerHTML = html; });
   const input = $('#name-try');
-  const previewName = $('#preview-name');
-  let slideTimer = null;
+  const previewName = () => input.value.trim() || A().hero.previewDefaultName;
+  const filmContent = () => Object.assign(
+    { brand: S.brand.name, mark: S.brand.mark, defaultName: A().hero.previewDefaultName, title: A().hero.previewTitle },
+    A().film || {},
+  );
 
-  const setPreviewName = () => {
-    previewName.textContent = input.value.trim() || A().hero.previewDefaultName;
-  };
+  // The animated hero film (film.js). If it ever fails, the poster image stays and the page still works.
+  let film = null;
+  try {
+    if (window.PremiereFilm) {
+      film = window.PremiereFilm.mount($('#hero-film'), {
+        content: filmContent(),
+        name: previewName(),
+        autoplay: !reduced,
+        ui: $('#hero-film-ui'),
+      });
+    }
+  } catch (err) {
+    film = null;
+    if (window.console) console.warn('Hero film could not start:', err);
+  }
 
-  const startSlides = () => {
-    clearInterval(slideTimer);
-    const slides = $$('.device-slide');
-    const dots = $$('[data-slot="dots"] i');
-    if (slides.length < 2 || reduced) return;
-    let i = 0;
-    slideTimer = setInterval(() => {
-      slides[i].classList.remove('is-on'); dots[i].classList.remove('is-on');
-      i = (i + 1) % slides.length;
-      slides[i].classList.add('is-on'); dots[i].classList.add('is-on');
-    }, 3800);
-  };
+  const setPreviewName = () => { if (film) film.setName(previewName()); };
 
   const render = () => {
     const a = A();
@@ -261,12 +258,9 @@
       <p class="hero-lead">${t(h.lead)}</p>`);
     fill('chips', h.chips.map(c => `<li>${t(c)}</li>`).join(''));
     fill('cta-label', t(h.primaryCta));
-    fill('preview-title', t(h.previewTitle));
-    fill('slides', h.images.map((src, i) => `<img class="device-slide${i === 0 ? ' is-on' : ''}" src="${src}" alt="" ${i === 0 ? 'fetchpriority="high"' : 'loading="lazy"'}>`).join(''));
-    fill('dots', h.images.map((_, i) => `<i${i === 0 ? ' class="is-on"' : ''}></i>`).join(''));
     input.placeholder = h.previewPlaceholder;
+    if (film) film.setContent(filmContent());
     setPreviewName();
-    startSlides();
 
     fill('steps-title', t(a.steps.title));
     fill('steps-lead', t(a.steps.lead));
