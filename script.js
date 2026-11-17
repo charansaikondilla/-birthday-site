@@ -1150,7 +1150,9 @@ function goTo(i) {
   slides.start = performance.now();
   const paused = player.classList.contains('is-paused');
   // While paused, ‹ › only change the picture — the clock stays stopped until Play.
-  if (!slides.running && !paused) { slides.running = true; slides.raf = requestAnimationFrame(frame); }
+  // (Re)start the clock for this picture. frame() stops its own loop when it calls
+  // advance(), so the loop must be restarted here every time — not only when it was off.
+  if (!paused) { cancelAnimationFrame(slides.raf); slides.running = true; slides.raf = requestAnimationFrame(frame); }
   if (paused) el.classList.add('is-paused');
   if (el.tagName === 'VIDEO') { try { el.currentTime = 0; } catch (e) { /* not loaded yet */ } if (!paused) playVideo(el); }
   syncMusic();
