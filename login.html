@@ -168,6 +168,14 @@
       border-color: #e50914;
     }
 
+    .skip-note {
+      margin: 10px 0 0;
+      font-size: 12px;
+      line-height: 1.5;
+      color: rgba(255, 255, 255, 0.55);
+      text-align: center;
+    }
+
     .error-message {
       display: none;
       color: #e50914;
@@ -234,7 +242,8 @@
         </div>
         <button type="submit" class="btn-login">Enter</button>
       </form>
-      <button type="button" class="btn-skip" id="skip-btn">Skip — just view a gift I was sent</button>
+      <button type="button" class="btn-skip" id="skip-btn">Skip — start editing without signing in</button>
+      <p class="skip-note">Your changes are saved on this device. Sign in later to get a link to share.</p>
     </div>
   </div>
 
@@ -323,7 +332,7 @@
       });
     }
 
-    document.getElementById('skip-btn').addEventListener('click', () => { window.location.href = 'index.html'; });
+    document.getElementById('skip-btn').addEventListener('click', () => { window.location.href = 'netflix.html?edit=1'; });
   </script>
 </body>
 </html>

@@ -3113,7 +3113,12 @@ function setupLogout() {
   renderProfiles();
   renderHome();
   renderPlayer();
-  if (cfg.startScreen === 'home') openHome(false);
+  // netflix.html?edit=1 → straight to Home with editing on (used by "Skip" on the
+  // sign-in page, so people can start making their page without an account).
+  // Never for a visitor opening someone else's gift.
+  const wantsEdit = new URLSearchParams(location.search).has('edit') && (!giftCtx || giftCtx.owner);
+  if (wantsEdit) { openHome(false); setEditMode(true); }
+  else if (cfg.startScreen === 'home') openHome(false);
   else if (cfg.startScreen === 'profiles') showProfiles();
   else startIntro();
 })();
