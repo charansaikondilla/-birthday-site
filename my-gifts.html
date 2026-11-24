@@ -52,6 +52,8 @@
   .row button { padding: 0 14px; border: 0; border-radius: 4px; background: #333; color: #fff; font-weight: 700; font-size: 13px; min-height: 42px; }
   .row button.go { background: var(--red); }
   .share { white-space: pre-wrap; margin: 10px 0; padding: 12px; border-radius: 6px; background: #1b1b1b; color: #ddd; font-size: 13px; line-height: 1.5; }
+  .qr-box { background: #fff; padding: 12px; border-radius: 8px; width: fit-content; margin: 4px 0 12px; }
+  .qr-box canvas, .qr-box img { display: block; }
   .wa { background: #25d366 !important; color: #052e16 !important; border-color: #25d366 !important; }
   .msg { margin: 8px 0 0; font-size: 13px; }
   .msg.ok { color: #46d369; } .msg.bad { color: #ff7b7b; }
@@ -68,13 +70,14 @@
   </header>
   <main>
     <h1>My gifts</h1>
-    <p class="lead">Each gift is its own private page with its own link and password. Customize it, send her the link and the password, and keep it forever with a one-time payment.</p>
+    <p class="lead">Each gift is its own page with its own link and QR code. Customize it, then send the link or QR — they open it without a password and never see the edit buttons. Keep it forever with a one-time payment.</p>
     <a class="new-gift" href="gift-create.html">＋ Create a new gift</a>
     <p class="worker-note" id="worker-note" hidden></p>
     <div id="list"><p class="status">Loading your gifts…</p></div>
   </main>
   <script src="cloud-config.js"></script>
   <script src="gift-store.js"></script>
+  <script src="vendor/qrcode.min.js"></script>
   <script>
     const $ = (s, r = document) => r.querySelector(s);
     const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -102,16 +105,17 @@
       const price = info.payments && info.payments.priceInr ? `₹${info.payments.priceInr}` : '';
       const badges = [
         g.paid ? '<span class="badge paid">Paid — kept forever</span>' : `<span class="badge trial">${expired ? 'Trial expired' : 'Free trial · ' + esc(GiftStore.fmtLeft(g.createdAt))}</span>`,
-        info.v >= 2 ? (g.hasPassword ? '<span class="badge lock">🔒 Password set</span>' : '<span class="badge warn">No password yet</span>') : '',
+        g.hasPassword ? '<span class="badge warn">🔒 Has an old password</span>' : '<span class="badge lock">🔓 Opens with the link</span>',
       ].join('');
       const view = GiftStore.viewLinkFor(g.slug);
       return `<div class="card" data-slug="${esc(g.slug)}">
         <div class="card-top"><h2>${g.name ? `For ${esc(g.name)}` : 'Untitled gift'}</h2><div class="badges">${badges}</div></div>
         <p class="meta">Created ${esc(new Date(g.createdAt).toLocaleDateString())}${g.paidAt ? ' · paid ' + esc(new Date(g.paidAt).toLocaleDateString()) : ''}</p>
         <div class="actions">
-          <a class="primary" href="${esc(view)}">✎ Customize her page</a>
-          <a href="${esc(view)}&amp;preview=1" target="_blank" rel="noopener">👁 See it as her</a>
-          ${info.v >= 2 ? '<button type="button" data-act="password">🔑 Password &amp; send to her</button>' : `<button type="button" data-act="copy-view">🔗 Copy her link</button>`}
+          <a class="primary" href="${esc(view)}">✎ Customize their page</a>
+          <a href="${esc(view)}&amp;preview=1" target="_blank" rel="noopener">👁 See it as them</a>
+          <button type="button" data-act="share">📤 Share link &amp; QR</button>
+          ${g.hasPassword ? '<button type="button" data-act="remove-pw">🔓 Remove password</button>' : ''}
           <button type="button" data-act="copy-upload">＋ Friends' photo link</button>
           ${!g.paid ? `<button type="button" class="pay" data-act="pay">💳 Keep forever${price ? ' · ' + price : ''}</button>` : ''}
         </div>
@@ -131,38 +135,39 @@
       if (!g) return;
       const act = b.dataset.act, panel = $('[data-panel]', el);
       say(el, '', true);
-      if (act === 'copy-view') return copy(GiftStore.viewLinkFor(g.slug), b, '🔗 Copy her link');
       if (act === 'copy-upload') return copy(GiftStore.linkFor(g.slug), b, "＋ Friends' photo link");
-      if (act === 'password') {
+      if (act === 'share') {
         panel.hidden = !panel.hidden;
         if (panel.hidden) return;
-        panel.innerHTML = `<label for="pw-${esc(g.slug)}">${g.hasPassword ? 'New password for her' : 'Choose a password for her'}</label>
-          <div class="row"><input id="pw-${esc(g.slug)}" type="text" maxlength="64" autocomplete="off" value="${esc(suggest())}" aria-label="Password">
-            <button type="button" data-act="suggest">🎲 Another</button><button type="button" class="go" data-act="save-pw">Save password</button></div>
-          <p class="msg" style="color:#8c8c8c">She types this on the sign-in screen. At least 4 characters — easy for her to type, hard for others to guess.</p>`;
-        $('input', panel).focus();
+        const view = GiftStore.viewLinkFor(g.slug);
+        const text = GiftStore.shareMessage(g);
+        panel.dataset.text = text;
+        panel.dataset.link = view;
+        panel.innerHTML = `<label>Scan to open ${g.name ? esc(g.name) + '’s' : 'their'} page</label>
+          <div class="qr-box" data-qr></div>
+          <div class="row"><input readonly value="${esc(view)}" aria-label="Their page link"><button type="button" data-act="copy-link">🔗 Copy link</button></div>
+          <div class="share">${esc(text)}</div>
+          <div class="actions"><a class="wa" href="https://wa.me/?text=${encodeURIComponent(text)}" target="_blank" rel="noopener">📲 Send on WhatsApp</a>
+            <button type="button" data-act="copy-msg">📋 Copy message</button>
+            <a href="#" data-qr-dl download="birthday-qr${g.name ? '-' + esc(g.name.replace(/[^\w-]+/g, '')) : ''}.png">⬇ Download QR</a></div>
+          <p class="msg" style="color:#8c8c8c">No password needed: the page opens with the intro, and they never see the edit buttons.${g.hasPassword ? ' (This older gift still has a password — press “Remove password” above.)' : ''}</p>`;
+        const box = $('[data-qr]', panel), dl = $('[data-qr-dl]', panel);
+        if (!GiftStore.drawQR(box, view, 200)) dl.style.display = 'none';
+        dl.addEventListener('click', (ev) => { const png = GiftStore.qrImage(box); if (png) dl.href = png; else ev.preventDefault(); });
         return;
       }
-      if (act === 'suggest') { $('input', panel).value = suggest(); return; }
-      if (act === 'save-pw') {
-        const pw = $('input', panel).value.trim();
-        if (pw.length < 4) return say(el, 'The password needs at least 4 characters.', false);
-        b.disabled = true; b.textContent = 'Saving…';
-        try {
-          const fresh = await GiftStore.setGiftPassword(g.slug, pw);
-          Object.assign(g, fresh || {}, { hasPassword: true });
-          const text = GiftStore.shareMessage(g, pw);
-          panel.innerHTML = `<label>Send her this</label><div class="share">${esc(text)}</div>
-            <div class="actions"><a class="wa" href="https://wa.me/?text=${encodeURIComponent(text)}" target="_blank" rel="noopener">📲 Send on WhatsApp</a>
-            <button type="button" data-act="copy-msg">📋 Copy message</button></div>
-            <p class="msg" style="color:#8c8c8c">Old password and old "remember me" sign-ins stop working now.</p>`;
-          panel.dataset.text = text;
-          el.querySelector('.badges').innerHTML = el.querySelector('.badges').innerHTML.replace(/<span class="badge warn">[^<]*<\/span>/, '<span class="badge lock">🔒 Password set</span>');
-          say(el, 'Password saved ✓', true);
-        } catch (err) { say(el, err.message || 'Could not save the password.', false); b.disabled = false; b.textContent = 'Save password'; }
-        return;
-      }
+      if (act === 'copy-link') return copy(panel.dataset.link || '', b, '🔗 Copy link');
       if (act === 'copy-msg') return copy(panel.dataset.text || '', b, '📋 Copy message');
+      if (act === 'remove-pw') {
+        b.disabled = true; b.textContent = 'Removing…';
+        try {
+          const fresh = await GiftStore.setGiftPassword(g.slug, '');
+          Object.assign(g, fresh || {}, { hasPassword: false });
+          paint();
+          say(list.querySelector(`[data-slug="${CSS.escape(g.slug)}"]`), 'Password removed ✓ — the link now opens straight away.', true);
+        } catch (err) { say(el, err.message || 'Could not remove the password.', false); b.disabled = false; b.textContent = '🔓 Remove password'; }
+        return;
+      }
       if (act === 'pay') {
         b.disabled = true; b.textContent = 'Opening Razorpay…';
         const reset = () => { b.disabled = false; b.textContent = `💳 Keep forever${info.payments && info.payments.priceInr ? ' · ₹' + info.payments.priceInr : ''}`; };
@@ -177,11 +182,6 @@
     (async () => {
       try {
         [info, gifts] = await Promise.all([GiftStore.info(), GiftStore.listMyGifts()]);
-        if (GiftStore.mode === 'cloud' && info.v < 2) {
-          const n = $('#worker-note');
-          n.textContent = 'Passwords and Razorpay payments switch on once the updated Worker is deployed (see RAZORPAY.md). Until then gifts open without a password.';
-          n.hidden = false;
-        }
         paint();
       } catch (e) {
         list.innerHTML = `<p class="status">Could not load your gifts: ${esc(e.message || 'unknown error')}</p>`;

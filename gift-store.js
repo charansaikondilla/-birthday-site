@@ -105,7 +105,8 @@
     async setGiftPassword(slug, password) {
       const g = await this.raw(slug);
       if (!g) throw new Error('This gift link was not found.');
-      Object.assign(g, await demoHash(password));
+      if (password) Object.assign(g, await demoHash(password));
+      else { delete g.passHash; delete g.passSalt; } // empty = remove the password
       await this.tx('gifts', 'readwrite', (s) => s.put(g));
       return this.view(g);
     },
@@ -194,6 +195,25 @@
       localStorage.setItem(SESSION_KEY, JSON.stringify(body));
       return body; // { session, email, name }
     },
+    // Email + password (for people without Gmail). mode: 'signup' | 'login'.
+    // Resolves { session, email, name } or throws a friendly message.
+    async withEmail(mode, email, password, name) {
+      if (!CLOUD_ON) throw new Error('Sign-in needs cloud mode (the Worker) to be set up first.');
+      let res;
+      try {
+        res = await fetch(`${CFG.WORKER_URL}/auth/${mode === 'signup' ? 'signup' : 'login'}`, {
+          method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email, password, name: name || '' }),
+        });
+      } catch (e) { throw new Error('Could not reach the server — check your internet connection.'); }
+      const body = await res.json().catch(() => null);
+      if (res.status === 404) throw new Error('Email sign-in is not switched on yet — the server needs its update. Use Google for now.');
+      if (!res.ok || !body || body.error || !body.session) {
+        const msg = (body && body.error) || 'Could not sign in — please try again.';
+        throw new Error(msg.charAt(0).toUpperCase() + msg.slice(1) + '.');
+      }
+      localStorage.setItem(SESSION_KEY, JSON.stringify({ session: body.session, email: body.email, name: body.name || '', kind: 'password' }));
+      return body;
+    },
   };
 
   // options.giftKey → sent as X-Gift-Key (a gift's "unlocked with the password" key).
@@ -227,8 +247,8 @@
     if (!infoPromise) {
       infoPromise = fetch(`${CFG.WORKER_URL}/version`)
         .then((r) => (r.ok ? r.json() : { v: 1 }))
-        .then((d) => ({ v: Number(d && d.v) || 1, payments: (d && d.payments) || null }))
-        .catch(() => ({ v: 1, payments: null }));
+        .then((d) => ({ v: Number(d && d.v) || 1, accounts: !!(d && d.accounts), payments: (d && d.payments) || null }))
+        .catch(() => ({ v: 1, accounts: false, payments: null }));
     }
     return infoPromise;
   }
@@ -433,9 +453,28 @@
     info: workerInfo,
     Keys,
     payWithRazorpay,
-    // The message the creator sends her (WhatsApp / copy).
+    // The message the creator sends (WhatsApp / copy). Links open without a password;
+    // a password line is only added for an older gift that still has one.
     shareMessage(gift, password) {
-      return `🎁 I made something special for you${gift.name ? ', ' + gift.name : ''} ❤️\n\nOpen it here: ${this.viewLinkFor(gift.slug)}\nPassword: ${password || '(ask me 😉)'}\n\nTurn your sound on 🔊`;
+      return `🎁 I made something special for you${gift.name ? ', ' + gift.name : ''} ❤️\n\nOpen it here: ${this.viewLinkFor(gift.slug)}${password ? `\nPassword: ${password}` : ''}\n\nTurn your sound on 🔊`;
+    },
+    // Draws a QR code for `text` into `box` (vendor/qrcode.min.js). Returns false if it couldn't.
+    drawQR(box, text, size = 200) {
+      box.innerHTML = '';
+      try {
+        if (typeof global.QRCode === 'undefined') throw new Error('no QR library');
+        new global.QRCode(box, { text, width: size, height: size, colorDark: '#000000', colorLight: '#ffffff', correctLevel: global.QRCode.CorrectLevel.M });
+        return true;
+      } catch (e) {
+        box.innerHTML = '<p style="color:#c00;font-size:12px;max-width:200px;margin:0 auto">Could not draw the QR code — the link still works, share that instead.</p>';
+        return false;
+      }
+    },
+    // The QR code as a PNG data URL (for "Download QR"), or '' if there isn't one.
+    qrImage(box) {
+      const c = box.querySelector('canvas'), img = box.querySelector('img');
+      try { if (c) return c.toDataURL('image/png'); } catch (e) { /* ignore */ }
+      return img && img.src && img.src.startsWith('data:') ? img.src : '';
     },
     Auth,
     // Usable even when CLOUD_ON is false — it just resolves to null so the caller

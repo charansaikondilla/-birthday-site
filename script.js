@@ -6,10 +6,11 @@ const config = {
   title: 'Happy Birthday',            // typed letter by letter on the home screen
   playerTitle: 'Happy Birthday Nuel', // shown at the top of the player
   brand: 'PREMIERE',                  // the red logo text in the top bar
-  rank: '#1 in Birthdays Today',      // the line next to the TOP 10 badge (leave '' to hide it)
+  rank: '#1 in Birthdays Today',      // the line next to the TOP 5 badge (leave '' to hide it)
   pageTitle: 'Happy Birthday {name}', // the browser tab name ({name} = the name)
   profilesHeading: "Who's watching?",
   startScreen: 'intro',               // 'intro' (logo, then Who's watching?) | 'profiles' | 'home'
+  rowsV: 1, marqueeV: 1, top5V: 1,             // layout version — a page made from these defaults is already up to date
 
   facts: { match: '99% Match', year: '2007', age: '18+', seasons: '18 Season', quality: 'HD+' },
 
@@ -42,19 +43,19 @@ const config = {
   },
 
   // The rows under the title. Scroll down to see them all.
-  //   type: 'portrait' (tall posters) | 'landscape' (wide tiles) | 'top10' (big numbers)
+  //   type: 'portrait' (tall posters) | 'landscape' (wide tiles) | 'top10' (Top 5 — big numbers, max 5 cards)
+  //   autoScroll: true = the row glides by itself in an endless loop (pauses on hover / touch)
   //   each item: image (the tile), title, text (shown in More Info), optional:
   //   preview (wide picture for the hover preview), tags [..], match, progress (0-100, landscape only)
   rows: [
     {
-      title: 'Special Moments', type: 'portrait',
+      title: 'Top 5 Trending', type: 'top10', autoScroll: true,
       items: [
-        { image: 'assets/netflix/moment-1.jpg', preview: 'assets/netflix/slide-1.jpg', title: 'Girls Night Out',  text: 'The nights we never wanted to end.',        tags: ['Friends', 'Party', 'Feel-good'] },
-        { image: 'assets/netflix/moment-2.jpg', preview: 'assets/netflix/slide-2.jpg', title: 'Ice Cream Days',   text: 'Sweet moments, sweeter company.',           tags: ['Summer', 'Sweet', 'City'] },
-        { image: 'assets/netflix/moment-3.jpg', preview: 'assets/netflix/slide-3.jpg', title: 'Face Mask Friday', text: 'Glow-up season with the best crew.',        tags: ['Cosy', 'Girls', 'Laughs'] },
-        { image: 'assets/netflix/moment-4.jpg', preview: 'assets/netflix/slide-4.jpg', title: 'Sleepover Squad',  text: 'Pyjamas, pillows and zero sleep.',          tags: ['Night', 'Chaos', 'Love'] },
-        { image: 'assets/netflix/moment-5.jpg', preview: 'assets/netflix/slide-5.jpg', title: 'Dance Floor',      text: 'Where every song was our song.',            tags: ['Music', 'Dance', 'Wild'] },
-        { image: 'assets/netflix/moment-6.jpg', preview: 'assets/netflix/slide-6.jpg', title: 'Golden Hour',      text: 'Sunset, smiles and forever friends.',       tags: ['Warm', 'Glow', 'Forever'] },
+        { image: 'assets/netflix/moment-6.jpg', preview: 'assets/netflix/slide-6.jpg', title: 'Golden Hour',      text: 'Number one. Always.',                          tags: ['Iconic', 'Warm'] },
+        { image: 'assets/netflix/moment-1.jpg', preview: 'assets/netflix/slide-1.jpg', title: 'Girls Night Out',  text: 'The night that had everything.',               tags: ['Party', 'Laughs'] },
+        { image: 'assets/netflix/moment-2.jpg', preview: 'assets/netflix/slide-2.jpg', title: 'Ice Cream Days',   text: 'Two scoops of happiness.',                     tags: ['Summer', 'Sweet'] },
+        { image: 'assets/netflix/moment-3.jpg', preview: 'assets/netflix/slide-3.jpg', title: 'Face Mask Friday', text: 'Self-care with the best company.',             tags: ['Cosy', 'Girls'] },
+        { image: 'assets/netflix/moment-4.jpg', preview: 'assets/netflix/slide-4.jpg', title: 'Sleepover Squad',  text: 'Nobody slept. No regrets.',                    tags: ['Night', 'Chaos'] },
       ],
     },
     {
@@ -68,29 +69,7 @@ const config = {
       ],
     },
     {
-      title: 'Top 10 Memories', type: 'top10',
-      items: [
-        { image: 'assets/netflix/moment-6.jpg', preview: 'assets/netflix/slide-6.jpg', title: 'Golden Hour',      text: 'Number one. Always.',                          tags: ['Iconic', 'Warm'] },
-        { image: 'assets/netflix/moment-1.jpg', preview: 'assets/netflix/slide-1.jpg', title: 'Girls Night Out',  text: 'The night that had everything.',               tags: ['Party', 'Laughs'] },
-        { image: 'assets/netflix/moment-2.jpg', preview: 'assets/netflix/slide-2.jpg', title: 'Ice Cream Days',   text: 'Two scoops of happiness.',                     tags: ['Summer', 'Sweet'] },
-        { image: 'assets/netflix/moment-3.jpg', preview: 'assets/netflix/slide-3.jpg', title: 'Face Mask Friday', text: 'Self-care with the best company.',             tags: ['Cosy', 'Girls'] },
-        { image: 'assets/netflix/moment-4.jpg', preview: 'assets/netflix/slide-4.jpg', title: 'Sleepover Squad',  text: 'Nobody slept. No regrets.',                    tags: ['Night', 'Chaos'] },
-        { image: 'assets/netflix/moment-5.jpg', preview: 'assets/netflix/slide-5.jpg', title: 'Dance Floor',      text: 'The playlist is still on repeat.',             tags: ['Music', 'Dance'] },
-      ],
-    },
-    {
-      title: 'Trending Now', type: 'landscape',
-      items: [
-        { image: 'assets/netflix/slide-3.jpg', title: 'Cake O\'Clock',       text: 'The sweetest part of the day.',                    tags: ['Cake', 'Sweet', 'Candles'] },
-        { image: 'assets/netflix/slide-4.jpg', title: 'Petals & Plates',     text: 'A table set with love.',                           tags: ['Dinner', 'Flowers', 'Warm'] },
-        { image: 'assets/netflix/slide-6.jpg', title: 'Glass Half Full',     text: 'Here\'s to the year ahead.',                       tags: ['Toast', 'Night', 'Sparkle'] },
-        { image: 'assets/netflix/hero-2.jpg',  title: 'Frozen Blooms',       text: 'Pretty things for a pretty person.',               tags: ['Ice', 'Flowers', 'Detail'] },
-        { image: 'assets/netflix/slide-8.jpg', title: 'Behind the Scenes',   text: 'The little moments in between.',                   tags: ['Candid', 'Real', 'Us'] },
-        { image: 'assets/netflix/hero-3.jpg',  title: 'Rose Season',         text: 'Blooming, just like you.',                         tags: ['Roses', 'Pink', 'Soft'] },
-      ],
-    },
-    {
-      title: 'My List', type: 'landscape',
+      title: 'My List', type: 'landscape', autoScroll: true,
       items: [
         { image: 'assets/netflix/slide-7.jpg', title: 'Balloons & Wishes',   text: 'Saved forever.',                                   tags: ['Wishes', 'Silver'] },
         { image: 'assets/netflix/slide-1.jpg', title: 'The Birthday Party',  text: 'Saved forever.',                                   tags: ['Party', 'Pink'] },
@@ -224,6 +203,7 @@ const store = {
   },
 };
 let storageOK = true;
+let hadLocalPage = false; // this device has its own customised page (made before signing in)
 function registerBlob(id, blob) {
   const old = media.get(id);
   if (old) URL.revokeObjectURL(old.url);
@@ -233,12 +213,15 @@ async function loadSaved() {
   try {
     const [saved, files] = await Promise.all([store.getConfig(), store.allMedia()]);
     files.forEach((f) => registerBlob(f.id, f.blob));
-    if (saved && typeof saved === 'object') cfg = normalise(saved);
+    if (saved && typeof saved === 'object') { cfg = normalise(saved); hadLocalPage = true; }
   } catch (e) {
     storageOK = false;
     console.warn('Customisation storage unavailable — changes will only last for this visit.', e);
   }
 }
+// A "Top 5" row (type top10) shows at most 5 cards, numbered 1–5.
+const TOP_MAX = 5;
+function capTop5(rows) { (rows || []).forEach((r) => { if (r && r.type === 'top10' && Array.isArray(r.items) && r.items.length > TOP_MAX) r.items.splice(TOP_MAX); }); }
 // Makes sure a saved / imported config has every field the site needs.
 function normalise(c) {
   const base = clone(config);
@@ -263,10 +246,28 @@ function normalise(c) {
   out.rows = (Array.isArray(c.rows) ? c.rows : base.rows).map((r) => ({
     title: r?.title ?? '',
     type: ['portrait', 'landscape', 'top10'].includes(r?.type) ? r.type : 'portrait',
+    autoScroll: r?.autoScroll === true,
     items: (Array.isArray(r?.items) ? r.items : []).map((it) => ({
       ...it, image: it?.image || '', title: it?.title ?? '', text: it?.text ?? '', tags: Array.isArray(it?.tags) ? it.tags : [],
     })),
   }));
+  // Pages saved before the new layout still carry the old default rows (Special Moments,
+  // Trending Now) and would keep showing them. Once per page: drop those two and put
+  // Top 10 Memories straight under the hero. Marked with rowsV so it never runs again —
+  // a row the creator adds later with one of those names stays.
+  if (!c.rowsV) {
+    out.rows = out.rows.filter((r) => r.title !== 'Special Moments' && r.title !== 'Trending Now');
+    const top = out.rows.findIndex((r) => r.title === 'Top 10 Memories');
+    if (top > 0) out.rows.unshift(out.rows.splice(top, 1)[0]);
+  }
+  out.rowsV = 1;
+  // Pages saved before the scrolling animation existed: turn it on once for these two rows.
+  if (!c.marqueeV) out.rows.forEach((r) => { if (r.title === 'Top 10 Memories' || r.title === 'Top 5 Trending' || r.title === 'My List') r.autoScroll = true; });
+  out.marqueeV = 1;
+  // Top 10 became Top 5: once per page, rename the old default row; every big-number row keeps 5 cards.
+  if (!c.top5V) out.rows.forEach((r) => { if (/^top 10/i.test(r.title)) r.title = r.title === 'Top 10 Memories' ? 'Top 5 Trending' : r.title.replace(/^top 10/i, 'Top 5'); });
+  out.top5V = 1;
+  capTop5(out.rows);
   out.previewInterval = Math.max(300, Number(out.previewInterval) || base.previewInterval);
   // Pages saved before the built-in sounds existed had introSound: '' — give them the new sounds once.
   if (!c.soundsV) { if (!c.introSound) out.introSound = base.introSound; if (c.music == null) out.music = base.music; }
@@ -563,6 +564,7 @@ const $$ = (s, root = document) => [...root.querySelectorAll(s)];
 const rowId = (r) => `row-${r}`;
 const scrollTopOf = (el) => el.getBoundingClientRect().top - home.getBoundingClientRect().top + home.scrollTop;
 function renderRows() {
+  capTop5(cfg.rows);
   $('#rows').innerHTML = '';
   sliderPainters.clear();
   cfg.rows.forEach(buildRow);
@@ -594,6 +596,7 @@ function bindPop(btnId, menuId, onOpen) {
 const signedIn = () => (typeof GiftStore !== 'undefined' && GiftStore.Auth && GiftStore.Auth.isSignedIn && GiftStore.Auth.isSignedIn())
   || !!(sessionStorage.getItem('auth-token') || localStorage.getItem('auth-token'));
 function signOut() {
+  try { if (typeof GiftStore !== 'undefined' && GiftStore.Auth) GiftStore.Auth.signOut(); } catch (e) { /* ignore */ }
   sessionStorage.removeItem('auth-token');
   localStorage.removeItem('auth-token');
   location.href = 'login.html';
@@ -611,8 +614,8 @@ function paintAccount() {
     `<button type="button" class="nf-menu-item" data-act="sound"><span class="nf-menu-ic">${typeof sound !== 'undefined' && sound.muted ? '🔇' : '🔊'}</span>Sound: ${typeof sound !== 'undefined' && sound.muted ? 'Off' : 'On'}</button>` +
     (gift ? '' : `<button type="button" class="nf-menu-item" data-act="edit"><span class="nf-menu-ic">✎</span>Edit this page</button>
       <button type="button" class="nf-menu-item" data-act="settings"><span class="nf-menu-ic">⚙</span>More settings</button>`) +
-    `<hr><a class="nf-menu-item" href="index.html"><span class="nf-menu-ic">←</span>Back to Premiere</a>` +
-    (signedIn() ? `<button type="button" class="nf-menu-item nf-menu-strong" data-act="signout">Sign out</button>` : '');
+    (isViewer() ? '' : `<hr><a class="nf-menu-item" href="index.html"><span class="nf-menu-ic">←</span>Back to Premiere</a>`) +
+    (signedIn() && !isViewer() ? `<button type="button" class="nf-menu-item nf-menu-strong" data-act="signout">Sign out</button>` : '');
   $$('#nf-account [data-avatar]').forEach((s) => { const p = cfg.profiles[Number(s.dataset.avatar)]; if (p) s.appendChild(mediaEl(p.image)); });
 }
 function paintNotes() {
@@ -715,6 +718,10 @@ const isTouch = () => document.body.classList.contains('is-touch');
 document.body.classList.toggle('is-touch', touchQuery.matches);
 const onTouchChange = () => { document.body.classList.toggle('is-touch', touchQuery.matches); sliderPainters.forEach((p) => p()); };
 if (touchQuery.addEventListener) touchQuery.addEventListener('change', onTouchChange); else if (touchQuery.addListener) touchQuery.addListener(onTouchChange);
+// People who turned on "reduce motion" in their system settings get still rows (no scrolling animation).
+const motionQuery = window.matchMedia ? matchMedia('(prefers-reduced-motion: reduce)') : { matches: false };
+const onMotionChange = () => sliderPainters.forEach((p) => p());
+if (motionQuery.addEventListener) motionQuery.addEventListener('change', onMotionChange); else if (motionQuery.addListener) motionQuery.addListener(onMotionChange);
 const slideIndexOf = (src) => Math.max(0, cfg.slides.images.indexOf(src));
 
 const ICON = {
@@ -744,7 +751,7 @@ function buildRow(row, r) {
   const track = block.querySelector('.track');
   row.items.forEach((item, i) => track.appendChild(buildCard(item, row.type, i, { r, i })));
   $('#rows').appendChild(block);
-  setupSlider(block);
+  setupSlider(block, row);
   block.querySelector('.row-tools').addEventListener('click', (e) => {
     const b = e.target.closest('[data-tool]');
     if (!b || !isEditing()) return;
@@ -848,17 +855,20 @@ function buildCard(item, type, i, at) {
   return card;
 }
 
-function setupSlider(block) {
+function setupSlider(block, row) {
   const slider = block.querySelector('.slider'), track = block.querySelector('.track');
   const left = block.querySelector('.arrow.left'), right = block.querySelector('.arrow.right');
   const pagesEl = block.querySelector('.row-pages');
   let offset = 0;
+  let mq = null; // the endless "Scrolling animation" while it runs (see the bottom of this function)
   const touchMode = () => document.body.classList.contains('is-touch'); // phones: the row scrolls natively
   const maxOffset = () => Math.max(0, track.scrollWidth - track.clientWidth);
   const gap = () => parseFloat(getComputedStyle(track).columnGap) || 0;
   const step = () => track.clientWidth + gap();
   const clamp = (v) => Math.max(0, Math.min(maxOffset(), v));
   const paint = () => {
+    syncMarquee();
+    if (mq) return; // the animation owns the row while it runs
     offset = Math.min(offset, maxOffset());
     track.style.transform = `translateX(${-offset}px)`;
     left.disabled = offset <= 0;
@@ -873,8 +883,8 @@ function setupSlider(block) {
     const w = card ? card.getBoundingClientRect().width + gap() : 0;
     return w > 0 && v < maxOffset() - 2 ? clamp(Math.round(v / w) * w) : clamp(v);
   };
-  left.addEventListener('click', () => { offset = Math.max(0, offset - step()); paint(); });
-  right.addEventListener('click', () => { offset = Math.min(maxOffset(), offset + step()); paint(); });
+  left.addEventListener('click', () => { if (mq) return glideBy(-step()); offset = Math.max(0, offset - step()); paint(); });
+  right.addEventListener('click', () => { if (mq) return glideBy(step()); offset = Math.min(maxOffset(), offset + step()); paint(); });
 
   // ---- Laptop trackpad: a two-finger sideways swipe (or Shift + mouse wheel) moves the row ----
   let wheelTimer = 0;
@@ -883,6 +893,7 @@ function setupSlider(block) {
     const sideways = Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : (e.shiftKey ? e.deltaY : 0);
     if (!sideways) return; // up/down still scrolls the page
     e.preventDefault();    // also stops the browser's "swipe = go back a page" gesture
+    if (mq) { mq.tween = null; mq.x = wrapX(mq.x + sideways * (e.deltaMode === 1 ? 16 : 1)); applyMarquee(); return; }
     track.classList.add('is-dragging');
     offset = clamp(offset + sideways * (e.deltaMode === 1 ? 16 : 1));
     paint();
@@ -895,7 +906,7 @@ function setupSlider(block) {
   track.addEventListener('dragstart', (e) => e.preventDefault()); // no "ghost image" when dragging a photo
   track.addEventListener('pointerdown', (e) => {
     if (touchMode() || (e.pointerType === 'mouse' && e.button !== 0) || maxOffset() <= 0) return;
-    drag = { id: e.pointerId, x: e.clientX, y: e.clientY, start: offset, moved: false, lastX: e.clientX, lastT: performance.now(), v: 0 };
+    drag = { id: e.pointerId, x: e.clientX, y: e.clientY, start: mq ? mq.x : offset, moved: false, lastX: e.clientX, lastT: performance.now(), v: 0 };
   });
   track.addEventListener('pointermove', (e) => {
     if (!drag || e.pointerId !== drag.id) return;
@@ -910,6 +921,7 @@ function setupSlider(block) {
     const now = performance.now();
     drag.v = (e.clientX - drag.lastX) / Math.max(1, now - drag.lastT); // px per ms
     drag.lastX = e.clientX; drag.lastT = now;
+    if (mq) { mq.tween = null; mq.x = wrapX(drag.start - dx); applyMarquee(); return; }
     const raw = drag.start - dx, max = maxOffset();
     offset = raw < 0 ? raw / 3 : raw > max ? max + (raw - max) / 3 : raw; // soft resistance past the ends
     track.style.transform = `translateX(${-offset}px)`;
@@ -920,8 +932,8 @@ function setupSlider(block) {
     drag = null;
     if (!d.moved) return;
     track.classList.remove('is-dragging');
-    offset = snap(offset - d.v * 260);
-    paint();
+    if (mq) glideBy(-d.v * 260); // a quick flick keeps the loop going a little
+    else { offset = snap(offset - d.v * 260); paint(); }
     // The click that follows a drag must not open the card the finger/mouse happened to end on.
     const swallow = (ev) => { ev.stopPropagation(); ev.preventDefault(); };
     track.addEventListener('click', swallow, true);
@@ -937,6 +949,115 @@ function setupSlider(block) {
     const l = card.offsetLeft, r = l + card.offsetWidth;
     if (l < offset || r > offset + track.clientWidth) { offset = snap(l - (track.clientWidth - card.offsetWidth) / 2); paint(); }
   };
+
+  // ---- Scrolling animation (rows with autoScroll: true) ----
+  // The cards are repeated after the real ones so the row can glide left forever and jump
+  // back by exactly one set without any visible seam. It stands still while the mouse is on
+  // the row (so the hover preview works), while dragging / swiping / using the arrows, while
+  // ✎ editing, when the row is off-screen, and for people who asked for reduced motion.
+  const SECONDS_PER_CARD = 3;
+  let hovering = false, focused = false, visible = !('IntersectionObserver' in window), holdUntil = 0;
+  const wantMarquee = () => !!(row && row.autoScroll) && row.items.length > 1 && !isEditing() && !motionQuery.matches && block.isConnected;
+  // Keeps x inside [½ set, 1½ sets) — the same picture as any other x, just never near an end.
+  const wrapX = (v) => { const lo = mq.setW / 2; return lo + ((((v - lo) % mq.setW) + mq.setW) % mq.setW); };
+  const applyMarquee = () => {
+    if (mq.touch) slider.scrollLeft = Math.round(mq.x);
+    else track.style.transform = `translateX(${-mq.x}px)`;
+  };
+  const glideBy = (dist) => {
+    if (!mq) return;
+    mq.tween = { from: mq.x, to: mq.x + dist, t0: performance.now(), dur: 650 };
+    mq.v = 0;
+    kick();
+  };
+  const tick = (t) => {
+    if (!mq) return;
+    if (!block.isConnected) { stopMarquee(); return; }
+    if (!visible) { mq.raf = 0; mq.t = 0; return; } // resumes when the row scrolls back into view
+    const dt = mq.t ? Math.min(64, t - mq.t) : 16;
+    mq.t = t;
+    if (mq.tween) {
+      const p = Math.min(1, (t - mq.tween.t0) / mq.tween.dur), ease = 1 - Math.pow(1 - p, 3);
+      mq.x = wrapX(mq.tween.from + (mq.tween.to - mq.tween.from) * ease);
+      if (p >= 1) mq.tween = null;
+      applyMarquee();
+    } else {
+      const still = hovering || focused || drag || performance.now() < holdUntil;
+      mq.v = still ? 0 : mq.v + (mq.speed - mq.v) * Math.min(1, dt / 600); // stops at once, eases back in
+      if (mq.v > 0.01) { mq.x = wrapX(mq.x + (mq.v * dt) / 1000); applyMarquee(); }
+    }
+    mq.raf = requestAnimationFrame(tick);
+  };
+  const kick = () => { if (mq && visible && !mq.raf) mq.raf = requestAnimationFrame(tick); };
+  const cloneSet = () => row.items.forEach((item, i) => {
+    const c = buildCard(item, row.type, i); // a working copy: hover preview and clicks still open it
+    c.classList.add('is-clone');
+    c.setAttribute('aria-hidden', 'true');
+    c.querySelectorAll('button').forEach((b) => { b.tabIndex = -1; });
+    track.appendChild(c);
+  });
+  const startMarquee = (phase) => {
+    const w = track.clientWidth, n = track.children.length;
+    if (!w || !n) return; // Home isn't on screen yet — the row-visible check below retries
+    cloneSet();
+    const setW = track.children[n].offsetLeft - track.children[0].offsetLeft; // one set, gap included
+    if (setW <= 0) { track.querySelectorAll('.is-clone').forEach((c) => c.remove()); return; }
+    for (let s = 2; s < Math.ceil(w / setW) + 2; s++) cloneSet(); // enough to always fill the row
+    block.classList.add('is-marquee');
+    pagesEl.innerHTML = '';
+    left.disabled = false; right.disabled = false;
+    const touch = touchMode();
+    mq = { touch, width: w, setW, speed: setW / row.items.length / SECONDS_PER_CARD, v: 0, t: 0, raf: 0, tween: null, x: 0 };
+    mq.x = wrapX(setW * (1 + (phase || 0))); // phase 0 = card #1 at the left edge
+    if (touch) track.style.transform = '';
+    applyMarquee();
+    kick();
+  };
+  const stopMarquee = () => {
+    if (!mq) return;
+    if (mq.raf) cancelAnimationFrame(mq.raf);
+    const wasTouch = mq.touch;
+    mq = null;
+    track.querySelectorAll('.is-clone').forEach((c) => c.remove());
+    block.classList.remove('is-marquee');
+    track.style.transform = '';
+    if (wasTouch) slider.scrollLeft = 0;
+    offset = 0;
+  };
+  // Starts, stops or re-measures the animation to match the page right now (called from paint).
+  function syncMarquee() {
+    const want = wantMarquee();
+    if (want && mq && mq.touch === touchMode() && mq.width === track.clientWidth) return;
+    const phase = mq ? (mq.x - mq.setW) / mq.setW : 0;
+    stopMarquee();
+    if (want) startMarquee(phase);
+  }
+  slider.addEventListener('mouseenter', () => { hovering = true; });
+  slider.addEventListener('mouseleave', () => { hovering = false; });
+  block.addEventListener('focusin', () => { focused = true; });
+  block.addEventListener('focusout', (e) => { if (!block.contains(e.relatedTarget)) focused = false; });
+  // Phones: the row is a native swipe. A swipe pauses the glide for a moment, and the
+  // position is wrapped back into the middle so you can swipe forever either way.
+  slider.addEventListener('scroll', () => {
+    if (!mq || !mq.touch || Math.abs(slider.scrollLeft - Math.round(mq.x)) <= 1) return; // our own move
+    holdUntil = performance.now() + 2500;
+    mq.tween = null;
+    mq.v = 0;
+    const x = wrapX(slider.scrollLeft);
+    mq.x = x;
+    if (Math.abs(x - slider.scrollLeft) > 1) slider.scrollLeft = Math.round(x);
+  }, { passive: true });
+  slider.addEventListener('touchstart', () => { holdUntil = performance.now() + 60000; }, { passive: true });
+  slider.addEventListener('touchend', () => { holdUntil = performance.now() + 2500; }, { passive: true });
+  if ('IntersectionObserver' in window) {
+    const io = new IntersectionObserver((entries) => {
+      if (!block.isConnected) { io.disconnect(); return; }
+      visible = entries[entries.length - 1].isIntersecting;
+      if (visible) { paint(); kick(); }
+    }, { root: home });
+    io.observe(block);
+  }
+
   sliderPainters.add(paint);
   requestAnimationFrame(paint);
   track.querySelectorAll('img').forEach((img) => img.addEventListener('load', paint, { once: true }));
@@ -1430,6 +1551,7 @@ function status(msg, kind = '') {
 const TABS = [['text', 'Text'], ['profiles', 'Profiles'], ['hero', 'Hero'], ['rows', 'Rows'], ['player', 'Player'], ['settings', 'Settings']];
 
 function openPanel() {
+  if (isViewer()) return; // a shared link is view-only
   if (ep.spec) epClose(); // never show the edit popup and the panel together
   stopAuto();
   draft = clone(cfg);
@@ -1499,7 +1621,7 @@ function renderTab() {
       <p class="cz-hint">Row names are the links in the top bar — rename them in the Rows tab.</p></div>
       <div class="cz-group"><h3>Top bar &amp; badge</h3><div class="cz-two">
       ${field('Logo text (top-left)', 'brand', d.brand)}
-      ${field('TOP 10 line (empty = hide)', 'rank', d.rank)}</div></div>
+      ${field('TOP 5 line (empty = hide)', 'rank', d.rank)}</div></div>
       <div class="cz-group"><h3>The little facts row</h3><div class="cz-two">
       ${field('Match', 'facts.match', d.facts.match)}${field('Year', 'facts.year', d.facts.year)}
       ${field('Badge', 'facts.age', d.facts.age)}${field('Seasons', 'facts.seasons', d.facts.seasons)}
@@ -1541,7 +1663,7 @@ function renderTab() {
         <select data-path="rows.${r}.type" data-kind="text" aria-label="Row style">
           <option value="portrait" ${row.type === 'portrait' ? 'selected' : ''}>Posters</option>
           <option value="landscape" ${row.type === 'landscape' ? 'selected' : ''}>Wide tiles</option>
-          <option value="top10" ${row.type === 'top10' ? 'selected' : ''}>Top 10</option>
+          <option value="top10" ${row.type === 'top10' ? 'selected' : ''}>Top 5</option>
         </select>
         <button type="button" class="cz-btn cz-btn-ghost" data-action="del-row" data-r="${r}" title="Remove this row">✕</button>
       </div>
@@ -2436,7 +2558,7 @@ function renderPlayerText() {
 function paintRank() {
   const t = $('#bb-rank-text');
   const empty = !cfg.rank;
-  t.textContent = empty ? (isEditing() ? '+ Add a TOP 10 line' : '') : cfg.rank;
+  t.textContent = empty ? (isEditing() ? '+ Add a TOP 5 line' : '') : cfg.rank;
   t.classList.toggle('is-placeholder', empty && isEditing());
   $('#bb-rank').hidden = empty && !isEditing();
 }
@@ -2521,16 +2643,19 @@ function editRow(row, opts) {
     sub: () => `Row ${idx() + 1} of ${cfg.rows.length} · ${plural(row.items.length, 'card')}`,
     fields: [
       { key: 'title', label: 'Row name', value: row.title, max: 50, hint: 'The first few rows are also the links in the top bar.' },
-      { key: 'type', label: 'Card style', kind: 'select', value: row.type, options: [['portrait', 'Tall posters'], ['landscape', 'Wide tiles'], ['top10', 'Top 10 — with big numbers']] },
+      { key: 'type', label: 'Card style', kind: 'select', value: row.type, options: [['portrait', 'Tall posters'], ['landscape', 'Wide tiles'], ['top10', 'Top 5 — big numbers (5 cards)']] },
+      { key: 'autoScroll', label: 'Scrolling animation', kind: 'select', value: row.autoScroll ? 'on' : 'off', options: [['on', 'On — the row glides by itself'], ['off', 'Off — still']] },
     ],
     tools: [
       { label: '↑ Move up', run: () => move(-1), disabled: () => idx() <= 0 },
       { label: '↓ Move down', run: () => move(1), disabled: () => idx() < 0 || idx() >= cfg.rows.length - 1 },
       { label: '＋ Add photos / videos', run: () => pickFiles(true, async (added) => {
         row.items.push(...added.map(({ ref, file }) => ({ image: ref, title: fileTitle(file), text: 'Added with love.', tags: [] })));
+        const over = row.type === 'top10' ? Math.max(0, row.items.length - TOP_MAX) : 0;
+        capTop5([row]);
         await persistCfgNow();
         renderRows(); paintNotes(); epRefresh();
-        showEditHint(`${plural(added.length, 'card')} added to “${row.title}” ✓`);
+        showEditHint(over ? `A Top 5 row holds 5 cards — ${plural(over, 'extra card')} not added. Delete one first to swap it.` : `${plural(added.length, 'card')} added to “${row.title}” ✓`, !!over);
       }) },
       { label: '🗑 Delete row', danger: true, close: true, confirm: 'Delete the whole row? Click again', run: () => { const r = idx(); if (r >= 0) changeRows(`Deleted “${row.title || 'row'}”`, () => cfg.rows.splice(r, 1)); } },
     ],
@@ -2538,6 +2663,7 @@ function editRow(row, opts) {
     save(v) {
       row.title = v.title.trim();
       if (['portrait', 'landscape', 'top10'].includes(v.type)) row.type = v.type;
+      row.autoScroll = v.autoScroll === 'on';
     },
     refresh: () => { renderRows(); paintNotes(); },
     saved: 'Row saved ✓',
@@ -2638,8 +2764,8 @@ function editFacts() {
 }
 function editRank() {
   openEditor({
-    title: 'Change the TOP 10 line?',
-    sub: 'Shown next to the red TOP 10 badge',
+    title: 'Change the TOP 5 line?',
+    sub: 'Shown next to the red TOP 5 badge',
     fields: [{ key: 'rank', label: 'Text (leave empty to hide the badge)', value: cfg.rank, max: 40, placeholder: '#1 in Birthdays Today' }],
     save(v) { cfg.rank = v.rank.trim(); },
     refresh: paintRank,
@@ -2871,6 +2997,7 @@ function ensureEditBar() {
   document.body.appendChild(bar);
 }
 function setEditMode(on) {
+  if (on && isViewer()) return; // someone opening a shared link can never edit it
   if (!on && ep.spec) epClose();
   document.body.classList.toggle('edit-mode', on);
   ensureEditBar();
@@ -2883,6 +3010,7 @@ function setEditMode(on) {
   $('#cz-more').hidden = !on;
   paintHeroFeature(currentHeroIndex());
   paintRank();
+  sliderPainters.forEach((p) => p()); // scrolling rows stand still (and show every card) while editing
   if (!player.hidden) showUI(); // re-arms (or, while editing, cancels) the player's auto-hide
   if (on) showEditHint(!player.hidden ? 'Tap the picture to change it. Use ‹ › to move between them.' : undefined);
   else showEditHint('Editing finished ✓ — everything you saved stays.');
@@ -2898,6 +3026,8 @@ $('#cz-side').addEventListener('click', openPanel);
      every change is what she will see. Add &preview=1 to see the password screen as her.
    Needs cloud-config.js + gift-store.js; without them gift links are ignored. */
 let giftCtx = null; // { slug, owner, gift, media }
+// Someone who opened a shared link (not its creator): view only — no edit, no Customize.
+function isViewer() { try { return !!(giftCtx && !giftCtx.owner); } catch (e) { return false; } } // safe even before giftCtx exists
 function giftSlugFromURL() {
   try { return new URLSearchParams(location.search).get('gift'); } catch (e) { return null; }
 }
@@ -3037,22 +3167,147 @@ function showOwnerBar() {
   const bar = document.createElement('div');
   bar.className = 'owner-bar';
   bar.id = 'owner-bar';
-  bar.innerHTML = `<span class="owner-bar-text"><b>✎ ${g.name ? `${esc(g.name)}’s page` : 'Your gift page'}</b><span class="owner-bar-sub"> — what you change here is exactly what she sees</span></span>
+  bar.innerHTML = `<span class="owner-bar-text"><b>✎ ${g.name ? `${esc(g.name)}’s page` : 'Your gift page'}</b><span class="owner-bar-sub"> — what you change here is exactly what they see</span></span>
     <span class="owner-bar-actions">
       <button type="button" data-ob="edit">✎ Edit</button>
-      <button type="button" data-ob="copy">🔗 Copy her link</button>
-      <a href="${esc(GiftStore.viewLinkFor(giftCtx.slug))}&amp;preview=1" target="_blank" rel="noopener">👁 See it as her</a>
-      <a href="my-gifts.html">🔑 Password &amp; payment</a>
+      <button type="button" data-ob="share" class="ob-share">📤 Share · QR</button>
+      <a href="${esc(GiftStore.viewLinkFor(giftCtx.slug))}&amp;preview=1" target="_blank" rel="noopener">👁 See it as them</a>
+      <a href="my-gifts.html">🎁 My gifts</a>
     </span>`;
-  bar.addEventListener('click', async (e) => {
+  bar.addEventListener('click', (e) => {
     const b = e.target.closest('[data-ob]');
     if (!b) return;
     if (b.dataset.ob === 'edit') { setEditMode(!isEditing()); return; }
-    const link = GiftStore.viewLinkFor(giftCtx.slug);
-    try { await navigator.clipboard.writeText(link); } catch (err) { /* older browsers: show it instead */ }
-    showEditHint(`Link copied ✓ — send it to her with the password you chose: ${link}`);
+    if (b.dataset.ob === 'share') openShare();
   });
   document.body.appendChild(bar);
+}
+
+/* ---------- Share: the link + a QR code for the person it's for ---------- */
+function openShare() {
+  if (!giftCtx || !giftCtx.owner) return;
+  if (isEditing()) setEditMode(false);
+  closeShare();
+  const g = giftCtx.gift, link = GiftStore.viewLinkFor(giftCtx.slug), text = GiftStore.shareMessage(g);
+  const box = document.createElement('div');
+  box.className = 'share-modal';
+  box.id = 'share-modal';
+  box.setAttribute('role', 'dialog');
+  box.setAttribute('aria-modal', 'true');
+  box.setAttribute('aria-labelledby', 'share-title');
+  box.innerHTML = `<div class="share-card">
+      <button type="button" class="share-x" data-sh="close" aria-label="Close">×</button>
+      <h2 id="share-title">Share ${g.name ? `${esc(g.name)}’s` : 'this'} birthday page</h2>
+      <p class="share-sub">They scan the QR code or open the link — no password, no edit buttons. It starts with the intro, just like Netflix.</p>
+      <div class="share-qr" id="share-qr"></div>
+      <div class="share-link"><input readonly value="${esc(link)}" aria-label="The link to their page"><button type="button" data-sh="copy">Copy</button></div>
+      <div class="share-actions">
+        <a class="share-wa" href="https://wa.me/?text=${encodeURIComponent(text)}" target="_blank" rel="noopener">📲 WhatsApp</a>
+        ${navigator.share ? '<button type="button" data-sh="native">📤 Share…</button>' : ''}
+        <a href="#" data-sh="dl" download="birthday-qr${g.name ? '-' + esc(g.name.replace(/[^\w-]+/g, '')) : ''}.png">⬇ Download QR</a>
+        <a href="${esc(link)}&amp;preview=1" target="_blank" rel="noopener">👁 Try it</a>
+      </div>
+      ${g.hasPassword || g.locked ? '<p class="share-warn">This older gift still asks for a password — remove it in <a href="my-gifts.html">My gifts</a> so it opens straight away.</p>' : ''}
+      <p class="share-note" id="share-note" aria-live="polite"></p>
+    </div>`;
+  document.body.appendChild(box);
+  const qr = box.querySelector('#share-qr'), note = box.querySelector('#share-note'), dl = box.querySelector('[data-sh="dl"]');
+  if (!GiftStore.drawQR(qr, link, 220)) dl.style.display = 'none';
+  const say = (t) => { note.textContent = t; };
+  box.addEventListener('click', async (e) => {
+    if (e.target === box) { closeShare(); return; }
+    const b = e.target.closest('[data-sh]');
+    if (!b) return;
+    const act = b.dataset.sh;
+    if (act === 'close') closeShare();
+    else if (act === 'copy') {
+      const input = box.querySelector('.share-link input');
+      try { await navigator.clipboard.writeText(link); } catch (err) { input.select(); try { document.execCommand('copy'); } catch (x) { /* ignore */ } }
+      b.textContent = 'Copied ✓'; setTimeout(() => { b.textContent = 'Copy'; }, 2000);
+      say('Link copied ✓ — paste it in any chat.');
+    } else if (act === 'native') {
+      try { await navigator.share({ title: document.title, text, url: link }); } catch (err) { /* closed the share sheet */ }
+    } else if (act === 'dl') {
+      const png = GiftStore.qrImage(qr);
+      if (png) b.href = png; else { e.preventDefault(); say('The QR code is still drawing — try again in a second.'); }
+    }
+  });
+  box._key = (e) => { if (e.key === 'Escape') { e.stopPropagation(); closeShare(); } };
+  window.addEventListener('keydown', box._key, true);
+  box.querySelector('.share-link button').focus();
+}
+function closeShare() {
+  const m = document.getElementById('share-modal');
+  if (!m) return;
+  window.removeEventListener('keydown', m._key, true);
+  m.remove();
+}
+
+/* ---------- A brand-new gift + a page already made on this device ("Skip" first) ----------
+   Offers once to copy that page into the gift: its own photos/videos/songs go up to the
+   gift, so the person it's for sees exactly what was made here. */
+async function copyLocalPageIntoGift(localCfg) {
+  const next = clone(localCfg);
+  const refs = [...collectRefs(next)];
+  const map = new Map();
+  let failed = 0;
+  for (let i = 0; i < refs.length; i++) {
+    showEditHint(`Copying your page… ${i + 1} of ${refs.length} files`);
+    const m = media.get(refs[i]);
+    try {
+      if (!m) throw new Error('missing');
+      const blob = await (await fetch(m.url)).blob();
+      const ext = (blob.type.split('/')[1] || 'bin').replace(/[^\w]+/g, '').slice(0, 5);
+      const up = await GiftStore.uploadGiftAsset(giftCtx.slug, new File([blob], `page-${i + 1}.${ext}`, { type: blob.type }));
+      if (up && up.url) map.set(refs[i], up.url); else throw new Error('no url');
+    } catch (e) { failed++; }
+  }
+  replaceRefs(next, map);
+  // A file that couldn't go up would only work on this device — leave the default there instead.
+  if (failed) {
+    const left = collectRefs(next);
+    const blank = (o) => { for (const k of Object.keys(o)) { if (typeof o[k] === 'string' && left.has(o[k])) o[k] = ''; else if (o[k] && typeof o[k] === 'object') blank(o[k]); } };
+    blank(next);
+  }
+  cfg = normalise(next);
+  if (giftCtx.gift.name) { cfg.name = giftCtx.gift.name; cfg.playerTitle = fullTitle(); }
+  mergeNewContributions(giftCtx.media);
+  await GiftStore.saveGiftConfig(giftCtx.slug, cfg);
+  return failed;
+}
+function offerLocalPage(localCfg) {
+  const ask = document.createElement('div');
+  ask.className = 'share-modal';
+  ask.id = 'import-ask';
+  ask.setAttribute('role', 'dialog');
+  ask.setAttribute('aria-modal', 'true');
+  ask.innerHTML = `<div class="share-card">
+      <h2>Use the page you already made?</h2>
+      <p class="share-sub">You customised a birthday page on this device before signing in. Copy it into this gift so ${giftCtx.gift.name ? esc(giftCtx.gift.name) : 'they'} see${giftCtx.gift.name ? 's' : ''} it?</p>
+      <div class="share-actions">
+        <button type="button" class="share-go" data-im="yes">Yes, use my page</button>
+        <button type="button" data-im="no">No, start fresh</button>
+      </div>
+      <p class="share-note" aria-live="polite"></p>
+    </div>`;
+  document.body.appendChild(ask);
+  ask.addEventListener('click', async (e) => {
+    const b = e.target.closest('[data-im]');
+    if (!b) return;
+    if (b.dataset.im === 'no') { ask.remove(); return; }
+    ask.querySelectorAll('button').forEach((x) => { x.disabled = true; });
+    b.textContent = 'Copying…';
+    try {
+      const failed = await copyLocalPageIntoGift(localCfg);
+      ask.remove();
+      renderProfiles(); renderHome(); renderPlayer();
+      showEditHint(failed ? `Your page was copied ✓ (${plural(failed, 'file')} couldn't upload and kept the default picture).` : 'Your page was copied into this gift ✓ — press 📤 Share to send it.');
+    } catch (err) {
+      ask.querySelector('.share-note').textContent = err.message || 'Could not copy the page — please try again.';
+      ask.querySelectorAll('button').forEach((x) => { x.disabled = false; });
+      b.textContent = 'Yes, use my page';
+    }
+  });
 }
 
 async function tryGiftMode() {
@@ -3073,14 +3328,17 @@ async function tryGiftMode() {
     }
     if (!full || !full.gift) { showGiftScreen("This gift isn't here", "We couldn't open this gift — it may have been deleted.", true); return true; }
     giftCtx = { slug, owner, gift: full.gift, media: full.media || [] };
+    // The page this device had before (from loadSaved), offered to a brand-new gift below.
+    const localCfg = owner && hadLocalPage && !(full.gift.config && typeof full.gift.config === 'object') ? cfg : null;
     applyGift(full.gift, giftCtx.media);
     if (owner) {
       document.body.classList.add('is-gift-owner');
       showOwnerBar();
+      if (localCfg && GiftStore.mode === 'cloud') setTimeout(() => offerLocalPage(localCfg), 600);
     } else {
-      document.body.classList.add('is-gift');
-      const addLink = document.getElementById('gift-add');
-      if (addLink) { addLink.hidden = false; addLink.href = `gift-upload.html?gift=${encodeURIComponent(slug)}`; }
+      // The person it's for: only the birthday page — no edit, no Customize, no extra buttons.
+      document.body.classList.add('is-gift', 'is-viewer');
+      document.body.classList.remove('edit-mode');
     }
     return false;
   } catch (e) {
@@ -3119,7 +3377,9 @@ function setupLogout() {
   // sign-in page, so people can start making their page without an account).
   // Never for a visitor opening someone else's gift.
   const wantsEdit = new URLSearchParams(location.search).has('edit') && (!giftCtx || giftCtx.owner);
-  if (wantsEdit) { openHome(false); setEditMode(true); }
+  // A shared link always plays from the very beginning: the logo intro, then Who's watching?
+  if (isViewer()) startIntro();
+  else if (wantsEdit) { openHome(false); setEditMode(true); }
   else if (cfg.startScreen === 'home') openHome(false);
   else if (cfg.startScreen === 'profiles') showProfiles();
   else startIntro();

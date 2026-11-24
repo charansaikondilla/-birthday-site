@@ -22,7 +22,7 @@
    /me/gifts, scoped to the caller's own verified email.
    ===================================================================== */
 
-const API_VERSION = 2;
+const API_VERSION = 3; // 3 = email + password accounts, password-free gift links
 const CORS_HEADERS = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Methods': 'GET,POST,PUT,DELETE,OPTIONS',
@@ -39,6 +39,18 @@ const isMedia = (contentType, allowAudio = false) => (allowAudio ? /^(image|vide
 const MAX_CONFIG_BYTES = 256 * 1024;
 const MAX_FAILED_TRIES = 8;          // wrong passwords allowed per gift…
 const TRY_WINDOW_MS = 15 * 60000;    // …per 15 minutes
+const MAX_LOGIN_TRIES = 10;          // wrong account passwords allowed per email per 15 minutes
+const EMAIL_RE = /^[^\s@]{1,64}@[^\s@]{1,190}\.[^\s@]{2,}$/;
+// Email + password accounts live in their own namespace ("pw:you@mail.com"), so nobody can
+// create a password account with someone else's Gmail address and see their Google gifts.
+const PW_PREFIX = 'pw:';
+const shownEmail = (identity) => String(identity || '').replace(/^pw:/, '');
+const accountPasswordProblem = (pw) => {
+  pw = String(pw || '');
+  if (pw.length < 6) return 'your password needs at least 6 characters';
+  if (pw.length > 128) return 'your password can be at most 128 characters';
+  return '';
+};
 
 async function readJsonBody(request) {
   try { return await request.json(); } catch { return {}; }
@@ -164,6 +176,9 @@ async function ensureSchema(env) {
   await env.DB.prepare(`CREATE TABLE IF NOT EXISTS gift_media (id TEXT PRIMARY KEY, slug TEXT NOT NULL, path TEXT NOT NULL, url TEXT NOT NULL,
     type TEXT NOT NULL, created_at TEXT NOT NULL DEFAULT (datetime('now')))`).run();
   await env.DB.prepare('CREATE TABLE IF NOT EXISTS gift_attempts (slug TEXT NOT NULL, at INTEGER NOT NULL)').run();
+  await env.DB.prepare(`CREATE TABLE IF NOT EXISTS accounts (email TEXT PRIMARY KEY, name TEXT NOT NULL DEFAULT '', pass_hash TEXT NOT NULL,
+    pass_salt TEXT NOT NULL, created_at TEXT NOT NULL DEFAULT (datetime('now')))`).run();
+  await env.DB.prepare('CREATE TABLE IF NOT EXISTS login_attempts (email TEXT NOT NULL, at INTEGER NOT NULL)').run();
   const { results } = await env.DB.prepare('PRAGMA table_info(gifts)').all();
   const have = new Set((results || []).map((c) => c.name));
   const add = [
@@ -227,7 +242,7 @@ export default {
 
       // GET /version  -> what this Worker can do (the site adapts to an older Worker).
       if (route('GET', 'version')) {
-        return json({ v: API_VERSION, passwords: true, payments: { razorpay: razorpayReady(env), keyId: env.RAZORPAY_KEY_ID || '', priceInr: priceInr(env), currency: 'INR' } });
+        return json({ v: API_VERSION, passwords: true, accounts: true, payments: { razorpay: razorpayReady(env), keyId: env.RAZORPAY_KEY_ID || '', priceInr: priceInr(env), currency: 'INR' } });
       }
 
       // POST /auth/google  { credential }  -> verify a Google Sign-In ID token and
@@ -242,19 +257,53 @@ export default {
         return json({ session, email: identity.email, name: identity.name });
       }
 
-      // POST /gifts  { slug, name, message, password }  -> create one gift owned by the signed-in user.
+      // POST /auth/signup  { email, password, name }  -> a new email + password account (no Gmail needed).
+      // POST /auth/login   { email, password }        -> sign in to it.
+      // Expected outcomes (email taken, wrong password, too many tries) are 200 answers with a
+      // `code`, so the browser console stays clean; the site shows the message.
+      if (route('POST', 'auth', 'signup') || route('POST', 'auth', 'login')) {
+        const signup = parts[1] === 'signup';
+        const body = await readJsonBody(request);
+        const email = String(body.email || '').trim().toLowerCase();
+        const password = String(body.password || '');
+        if (!EMAIL_RE.test(email) || email.length > 254) return json({ error: 'please enter a valid email address', code: 'email' });
+        const now = Date.now();
+        const { n } = await env.DB.prepare('SELECT COUNT(*) AS n FROM login_attempts WHERE email = ? AND at > ?').bind(email, now - TRY_WINDOW_MS).first();
+        if (n >= MAX_LOGIN_TRIES) return json({ error: 'too many tries — please wait 15 minutes and try again', code: 'slow' });
+        const row = await env.DB.prepare('SELECT * FROM accounts WHERE email = ?').bind(email).first();
+        if (signup) {
+          const problem = accountPasswordProblem(password);
+          if (problem) return json({ error: problem, code: 'password' });
+          if (row) return json({ error: 'an account with this email already exists — sign in instead', code: 'exists' });
+          const name = String(body.name || '').trim().slice(0, 80);
+          const { hash, salt } = await hashPassword(password);
+          await env.DB.prepare('INSERT INTO accounts (email, name, pass_hash, pass_salt) VALUES (?, ?, ?, ?)').bind(email, name, hash, salt).run();
+          return json({ session: await issueSession(PW_PREFIX + email, env.SESSION_SECRET), email, name, kind: 'password' });
+        }
+        const { hash } = row ? await hashPassword(password, row.pass_salt) : { hash: '' };
+        if (!row || !safeEqual(hash, row.pass_hash)) {
+          await env.DB.prepare('INSERT INTO login_attempts (email, at) VALUES (?, ?)').bind(email, now).run();
+          return json({ error: 'wrong email or password', code: 'wrong' });
+        }
+        await env.DB.prepare('DELETE FROM login_attempts WHERE email = ?').bind(email).run();
+        return json({ session: await issueSession(PW_PREFIX + email, env.SESSION_SECRET), email, name: row.name || '', kind: 'password' });
+      }
+
+      // POST /gifts  { slug, name, message, password? }  -> create one gift owned by the signed-in user.
+      // No password (the normal case) = anyone with the link or QR code opens the page straight away.
       if (route('POST', 'gifts')) {
         const auth = await whoIs(request, env);
         if (!auth) return bad('please sign in first', 401);
         const body = await readJsonBody(request);
         const slug = String(body.slug || '').trim();
         if (!slug || !/^[a-z0-9]{6,40}$/i.test(slug)) return bad('a valid slug is required');
-        const problem = passwordProblem(body.password);
+        const wantsPassword = String(body.password || '') !== '';
+        const problem = wantsPassword ? passwordProblem(body.password) : '';
         if (problem) return bad(problem);
         const name = String(body.name || '').slice(0, 200);
         const message = String(body.message || '').slice(0, 1000);
         if (await getGiftRow(env, slug)) return bad('that link is already taken — try again', 409);
-        const { hash, salt } = await hashPassword(body.password);
+        const { hash, salt } = wantsPassword ? await hashPassword(body.password) : { hash: '', salt: '' };
         await env.DB.prepare("INSERT INTO gifts (slug, name, message, buyer_email, pass_hash, pass_salt, pass_v, updated_at) VALUES (?, ?, ?, ?, ?, ?, 1, datetime('now'))")
           .bind(slug, name, message, auth.email, hash, salt).run();
         return json(ownerView(await getGiftRow(env, slug)), 201);
@@ -344,13 +393,15 @@ export default {
       }
 
       // PUT /gifts/:slug/password  { password }  -> the creator changes it (old viewing keys stop working).
+      // An empty password removes it: the link then opens without one.
       if (route('PUT', 'gifts', '*', 'password')) {
         const o = await requireOwner(request, env, parts[1]);
         if (o.error) return o.error;
         const body = await readJsonBody(request);
-        const problem = passwordProblem(body.password);
+        const remove = String(body.password || '') === '';
+        const problem = remove ? '' : passwordProblem(body.password);
         if (problem) return bad(problem);
-        const { hash, salt } = await hashPassword(body.password);
+        const { hash, salt } = remove ? { hash: '', salt: '' } : await hashPassword(body.password);
         await env.DB.prepare('UPDATE gifts SET pass_hash = ?, pass_salt = ?, pass_v = pass_v + 1 WHERE slug = ?').bind(hash, salt, o.row.slug).run();
         await env.DB.prepare('DELETE FROM gift_attempts WHERE slug = ?').bind(o.row.slug).run();
         return json(ownerView(await getGiftRow(env, o.row.slug)));
@@ -404,7 +455,7 @@ export default {
         const order = await res.json().catch(() => null);
         if (!res.ok || !order || !order.id) return bad((order && order.error && order.error.description) || 'Razorpay could not create the order', 502);
         await env.DB.prepare('UPDATE gifts SET pay_order_id = ? WHERE slug = ?').bind(order.id, o.row.slug).run();
-        return json({ orderId: order.id, amount: order.amount, currency: order.currency, keyId: env.RAZORPAY_KEY_ID, email: o.auth.email, name: o.row.name });
+        return json({ orderId: order.id, amount: order.amount, currency: order.currency, keyId: env.RAZORPAY_KEY_ID, email: shownEmail(o.auth.email), name: o.row.name });
       }
 
       // POST /gifts/:slug/pay/verify  { razorpay_order_id, razorpay_payment_id, razorpay_signature }
@@ -473,5 +524,6 @@ export default {
       await env.DB.prepare('DELETE FROM gifts WHERE slug = ?').bind(gift.slug).run();
     }
     await env.DB.prepare('DELETE FROM gift_attempts WHERE at < ?').bind(Date.now() - 86400000).run();
+    await env.DB.prepare('DELETE FROM login_attempts WHERE at < ?').bind(Date.now() - 86400000).run();
   },
 };

@@ -203,6 +203,21 @@
       }
     }
 
+    [hidden] { display: none !important; }
+    /* Email + password (for people without Gmail) */
+    .or-line { display: flex; align-items: center; gap: 12px; margin: 4px 0 18px; color: rgba(255,255,255,.45); font-size: 12px; text-transform: uppercase; letter-spacing: .08em; }
+    .or-line::before, .or-line::after { content: ''; flex: 1; height: 1px; background: rgba(255,255,255,.15); }
+    .em-tabs { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 18px; background: rgba(255,255,255,.06); border-radius: 6px; padding: 4px; }
+    .em-tabs button { padding: 9px 6px; border: 0; border-radius: 4px; background: transparent; color: rgba(255,255,255,.7); font: 600 13px 'Montserrat', sans-serif; cursor: pointer; }
+    .em-tabs button[aria-selected="true"] { background: #e50914; color: #fff; }
+    .pw-wrap { position: relative; }
+    .pw-wrap input { padding-right: 64px; }
+    .pw-eye { position: absolute; right: 6px; top: 50%; transform: translateY(-50%); background: none; border: 0; color: rgba(255,255,255,.7); font: 700 11px 'Montserrat', sans-serif; letter-spacing: .05em; cursor: pointer; padding: 8px; }
+    .em-hint { font-size: 12px; color: rgba(255,255,255,.5); margin-top: 6px; }
+    .btn-login:disabled { opacity: .6; cursor: wait; }
+    .ok-message { display: none; color: #46d369; font-size: 13px; margin-bottom: 16px; padding: 12px; background: rgba(70,211,105,.1); border-radius: 4px; border-left: 3px solid #46d369; }
+    .ok-message.show { display: block; }
+
     @media (max-width: 480px) {
       .login-card {
         padding: 30px 20px;
@@ -229,7 +244,35 @@
 
       <div class="error-message" id="error-message"></div>
 
+      <div class="ok-message" id="ok-message" role="status"></div>
       <div id="google-btn" style="display:flex;justify-content:center;margin-bottom:16px"></div>
+
+      <div id="email-box" hidden>
+        <p class="or-line">or use your email</p>
+        <div class="em-tabs" role="tablist" aria-label="Email sign-in">
+          <button type="button" role="tab" id="tab-login" aria-selected="true">Sign in</button>
+          <button type="button" role="tab" id="tab-signup" aria-selected="false">Create account</button>
+        </div>
+        <form id="email-form" novalidate>
+          <div class="form-group" id="name-group" hidden>
+            <label for="em-name">Your name</label>
+            <input type="text" id="em-name" maxlength="80" autocomplete="name" placeholder="e.g. Charan">
+          </div>
+          <div class="form-group">
+            <label for="em-email">Email</label>
+            <input type="email" id="em-email" maxlength="254" autocomplete="email" inputmode="email" placeholder="you@example.com" required>
+          </div>
+          <div class="form-group">
+            <label for="em-pass">Password</label>
+            <div class="pw-wrap">
+              <input type="password" id="em-pass" maxlength="128" autocomplete="current-password" placeholder="Your password" required>
+              <button type="button" class="pw-eye" id="em-eye" aria-label="Show the password">SHOW</button>
+            </div>
+            <p class="em-hint" id="em-hint" hidden>At least 6 characters. Any email works — Gmail not needed.</p>
+          </div>
+          <button type="submit" class="btn-login" id="em-go">Sign in</button>
+        </form>
+      </div>
 
       <form id="login-form" style="display:none">
         <div class="form-group">
@@ -329,6 +372,65 @@
         const token = 'auth_' + Date.now();
         (remember ? localStorage : sessionStorage).setItem('auth-token', token);
         window.location.href = 'my-gifts.html';
+      });
+    }
+
+    // ---- Email + password: each person gets their own account and their own gifts ----
+    if (window.GiftStore && GiftStore.mode === 'cloud') {
+      const box = document.getElementById('email-box');
+      const form = document.getElementById('email-form');
+      const go = document.getElementById('em-go');
+      const pass = document.getElementById('em-pass');
+      const tabLogin = document.getElementById('tab-login'), tabSignup = document.getElementById('tab-signup');
+      let mode = 'login';
+      box.hidden = false;
+      if (!clientId) { // no Google: email is the main way in, not "or"
+        document.getElementById('google-btn').innerHTML = '';
+        document.getElementById('login-form').style.display = 'none';
+        box.querySelector('.or-line').hidden = true;
+        document.getElementById('login-subtitle').textContent = 'Sign in to create and manage your gifts';
+      }
+      const setMode = (m) => {
+        mode = m;
+        tabLogin.setAttribute('aria-selected', String(m === 'login'));
+        tabSignup.setAttribute('aria-selected', String(m === 'signup'));
+        document.getElementById('name-group').hidden = m !== 'signup';
+        document.getElementById('em-hint').hidden = m !== 'signup';
+        pass.autocomplete = m === 'signup' ? 'new-password' : 'current-password';
+        pass.placeholder = m === 'signup' ? 'Choose a password' : 'Your password';
+        go.textContent = m === 'signup' ? 'Create my account' : 'Sign in';
+        errorMessage.classList.remove('show');
+      };
+      tabLogin.addEventListener('click', () => setMode('login'));
+      tabSignup.addEventListener('click', () => setMode('signup'));
+      document.getElementById('em-eye').addEventListener('click', (e) => {
+        const show = pass.type === 'password';
+        pass.type = show ? 'text' : 'password';
+        e.currentTarget.textContent = show ? 'HIDE' : 'SHOW';
+        e.currentTarget.setAttribute('aria-label', show ? 'Hide the password' : 'Show the password');
+      });
+      form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const email = document.getElementById('em-email').value.trim();
+        const password = pass.value;
+        const name = document.getElementById('em-name').value.trim();
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) { showError('Please enter a valid email address.'); return; }
+        if (mode === 'signup' && password.length < 6) { showError('Choose a password with at least 6 characters.'); return; }
+        if (!password) { showError('Please enter your password.'); return; }
+        go.disabled = true;
+        const label = go.textContent;
+        go.textContent = mode === 'signup' ? 'Creating your account…' : 'Signing in…';
+        try {
+          await GiftStore.Auth.withEmail(mode, email, password, name);
+          const ok = document.getElementById('ok-message');
+          ok.textContent = mode === 'signup' ? 'Account created ✓ — opening your gifts…' : 'Signed in ✓';
+          ok.classList.add('show');
+          window.location.href = 'my-gifts.html';
+        } catch (ex) {
+          showError(ex.message || 'Could not sign in — please try again.');
+          go.disabled = false;
+          go.textContent = label;
+        }
       });
     }
 

@@ -98,10 +98,7 @@
         <div class="gc-card">
           <label class="gc-field"><span>Who is it for?</span><input id="gc-name" type="text" placeholder="e.g. Nuel" maxlength="60"></label>
           <label class="gc-field"><span>A line for them (optional)</span><textarea id="gc-message" placeholder="Happy Birthday! We all put this together for you…" maxlength="240"></textarea></label>
-          <div class="gc-field"><label for="gc-password"><span>Password for them</span></label>
-            <div class="gc-pw-row"><input id="gc-password" type="text" maxlength="64" autocomplete="off" placeholder="e.g. rose-moon27">
-              <button id="gc-suggest" type="button">🎲 Suggest</button></div>
-            <small class="gc-hint">They type this on a Netflix-style sign-in screen to open their page. At least 4 characters.</small></div>
+          <p class="gc-hint" style="margin:-4px 0 16px">No password needed — they just open the link or scan the QR code, and their page starts with the intro.</p>
           <button id="gc-submit" class="gc-go" type="button">Create the gift link →</button>
           <p id="gc-error" class="gc-error" hidden></p>
         </div>
@@ -133,12 +130,15 @@
         </div>
         <div class="gc-card gc-send">
           <p class="gc-step-title">Send this to them</p>
+          <div id="gc-view-qr" class="gc-qr" aria-label="QR code that opens their birthday page"></div>
+          <div class="gc-link-row"><input id="gc-view-link" readonly aria-label="Their birthday page link"><button id="gc-copy-view" type="button">Copy</button></div>
           <div class="gc-share" id="gc-share"></div>
           <div class="gc-actions" style="margin-top:12px">
             <a id="gc-wa" class="gc-wa" href="#" target="_blank" rel="noopener">📲 Send on WhatsApp</a>
             <button id="gc-copy-msg" class="ghost" type="button">📋 Copy message</button>
+            <a id="gc-qr-dl" class="ghost" href="#" download="birthday-qr.png">⬇ Download QR</a>
           </div>
-          <p class="gc-hint" style="margin-top:12px">Only someone with the password can open the page. You can change it any time in <a href="my-gifts.html" style="color:#ccc">My gifts</a>.</p>
+          <p class="gc-hint" style="margin-top:12px">Anyone with this link or QR code opens the page — no password, no edit buttons. Customize it first, then send it.</p>
         </div>
         <div class="gc-card" style="text-align:center">
           <p class="gc-step-title">Friends &amp; family can add photos here</p>
@@ -154,7 +154,7 @@
     </div>
   </div>
 
-  <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+  <script src="vendor/qrcode.min.js"></script>
   <script>
     const $ = (s) => document.querySelector(s);
     $('#gc-trial-days').textContent = GiftStore.trialDays;
@@ -170,16 +170,11 @@
 
     let countdownTimer = null;
     let currentGift = null;
-    let currentPassword = '';
     let info = { v: 0, payments: null };
-    const WORDS = ['rose', 'moon', 'star', 'cake', 'honey', 'sunny', 'candy', 'dream', 'angel', 'smile', 'sweet', 'magic', 'cherry', 'pearl', 'bunny'];
-    const suggest = () => `${WORDS[Math.floor(Math.random() * WORDS.length)]}-${WORDS[Math.floor(Math.random() * WORDS.length)]}${10 + Math.floor(Math.random() * 90)}`;
-    $('#gc-suggest').addEventListener('click', () => { $('#gc-password').value = suggest(); $('#gc-password').focus(); });
     const priceText = () => (info.payments && info.payments.razorpay && info.payments.priceInr ? ` · ₹${info.payments.priceInr}` : '');
     GiftStore.info().then((i) => {
       info = i;
       if (priceText()) $('#gc-price-note').textContent = ` (₹${info.payments.priceInr})`;
-      if (GiftStore.mode === 'cloud' && info.v < 2) $('.gc-hint').textContent = 'Passwords switch on once the updated Worker is deployed (see RAZORPAY.md) — until then the page opens without one.';
     });
     function paintPaid(gift) {
       $('#gc-buy').style.display = gift.paid ? 'none' : '';
@@ -198,7 +193,8 @@
       $('#gc-customize').href = view;
       $('#gc-view').href = `${view}&preview=1`;
       $('#gc-upload-self').href = link;
-      const text = GiftStore.shareMessage(gift, currentPassword);
+      $('#gc-view-link').value = view;
+      const text = GiftStore.shareMessage(gift);
       $('#gc-share').textContent = text;
       $('#gc-wa').href = `https://wa.me/?text=${encodeURIComponent(text)}`;
       paintPaid(gift);
@@ -213,19 +209,19 @@
       paint();
       countdownTimer = setInterval(paint, 30000);
 
-      $('#gc-qr').innerHTML = '';
-      try {
-        if (typeof QRCode === 'undefined') throw new Error('QR library did not load');
-        new QRCode($('#gc-qr'), { text: link, width: 200, height: 200, colorDark: '#000000', colorLight: '#ffffff', correctLevel: QRCode.CorrectLevel.M });
-      } catch (e) {
-        $('#gc-qr').innerHTML = '<p style="color:#c00;font-size:12px;max-width:200px;margin:0 auto">Could not draw the QR code (no internet connection to fetch it) — the link above still works, just share that instead.</p>';
-      }
+      GiftStore.drawQR($('#gc-qr'), link);
+      const dl = $('#gc-qr-dl');
+      dl.style.display = GiftStore.drawQR($('#gc-view-qr'), view, 220) ? '' : 'none';
+      // qrcodejs paints the PNG a moment after the canvas — read it when it's asked for.
+      dl.onclick = (e) => { const png = GiftStore.qrImage($('#gc-view-qr')); if (png) dl.href = png; else e.preventDefault(); };
     }
-    $('#gc-copy').addEventListener('click', async () => {
-      try { await navigator.clipboard.writeText($('#gc-link').value); $('#gc-copy').textContent = 'Copied ✓'; }
-      catch { $('#gc-link').select(); document.execCommand('copy'); $('#gc-copy').textContent = 'Copied ✓'; }
-      setTimeout(() => { $('#gc-copy').textContent = 'Copy'; }, 2000);
-    });
+    const copyField = (input, btn) => async () => {
+      try { await navigator.clipboard.writeText($(input).value); $(btn).textContent = 'Copied ✓'; }
+      catch { $(input).select(); document.execCommand('copy'); $(btn).textContent = 'Copied ✓'; }
+      setTimeout(() => { $(btn).textContent = 'Copy'; }, 2000);
+    };
+    $('#gc-copy').addEventListener('click', copyField('#gc-link', '#gc-copy'));
+    $('#gc-copy-view').addEventListener('click', copyField('#gc-view-link', '#gc-copy-view'));
     $('#gc-copy-msg').addEventListener('click', async () => {
       const b = $('#gc-copy-msg');
       try { await navigator.clipboard.writeText($('#gc-share').textContent); b.textContent = 'Copied ✓'; }
@@ -281,20 +277,10 @@
     $('#gc-submit').addEventListener('click', async () => {
       const btn = $('#gc-submit'), err = $('#gc-error');
       const name = $('#gc-name').value.trim(), message = $('#gc-message').value.trim();
-      const password = $('#gc-password').value.trim();
       err.hidden = true;
-      info = await GiftStore.info(); // (a fast, cached call) — so a quick click never skips the check
-      const needsPassword = GiftStore.mode === 'demo' || info.v >= 2;
-      if (needsPassword && password.length < 4) {
-        err.textContent = 'Choose a password with at least 4 characters (or press 🎲 Suggest) — it keeps the page private.';
-        err.hidden = false;
-        $('#gc-password').focus();
-        return;
-      }
       btn.disabled = true; btn.textContent = 'Creating…';
       try {
-        const gift = await GiftStore.createGift({ name, message, password });
-        currentPassword = needsPassword ? password : '';
+        const gift = await GiftStore.createGift({ name, message });
         showResult(gift);
       } catch (e) {
         err.textContent = e.message || 'Something went wrong creating the gift — please try again.';
