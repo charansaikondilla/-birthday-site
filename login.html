@@ -383,7 +383,8 @@
       const pass = document.getElementById('em-pass');
       const tabLogin = document.getElementById('tab-login'), tabSignup = document.getElementById('tab-signup');
       let mode = 'login';
-      box.hidden = false;
+      // Shown once the Worker supports email accounts (or when there is no Google sign-in at all).
+      GiftStore.info().then((i) => { box.hidden = !(i.accounts || !clientId); });
       if (!clientId) { // no Google: email is the main way in, not "or"
         document.getElementById('google-btn').innerHTML = '';
         document.getElementById('login-form').style.display = 'none';

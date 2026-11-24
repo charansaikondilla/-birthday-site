@@ -55,6 +55,8 @@
   .wa { background: #25d366 !important; color: #052e16 !important; border-color: #25d366 !important; }
   .msg { margin: 8px 0 0; font-size: 13px; }
   .msg.ok { color: #46d369; } .msg.bad { color: #ff7b7b; }
+  .no-edit, .old-worker .needs-edit { display: none !important; }
+  .old-worker .no-edit { display: inline !important; }
   .empty, .status { padding: 60px 0; color: var(--muted); text-align: center; }
 </style>
 </head>
@@ -68,7 +70,7 @@
   </header>
   <main>
     <h1>My gifts</h1>
-    <p class="lead">Each gift is its own page with its own link and QR code. Customize it, then send the link or QR — they open it without a password and never see the edit buttons.</p>
+    <p class="lead">Each gift is its own page with its own link and QR code. <span class="needs-edit">Customize it, then</span><span class="no-edit">Send</span> <span class="needs-edit">send </span>the link or QR — they open it without a password and never see the edit buttons.</p>
     <a class="new-gift" href="gift-create.html">＋ Create a new gift</a>
     <p class="worker-note" id="worker-note" hidden></p>
     <div id="list"><p class="status">Loading your gifts…</p></div>
@@ -108,7 +110,7 @@
         <div class="card-top"><h2>${g.name ? `For ${esc(g.name)}` : 'Untitled gift'}</h2><div class="badges">${badges}</div></div>
         <p class="meta">Created ${esc(new Date(g.createdAt).toLocaleDateString())}${g.paidAt ? ' · paid ' + esc(new Date(g.paidAt).toLocaleDateString()) : ''}</p>
         <div class="actions">
-          <a class="primary" href="${esc(view)}">✎ Customize their page</a>
+          <a class="primary needs-edit" href="${esc(view)}">✎ Customize their page</a>
           <a href="${esc(view)}&amp;preview=1" target="_blank" rel="noopener">👁 See it as them</a>
           <button type="button" data-act="share">📤 Share link &amp; QR</button>
           ${g.hasPassword ? '<button type="button" data-act="remove-pw">🔓 Remove password</button>' : ''}
@@ -167,6 +169,8 @@
 
     (async () => {
       try {
+        // An older Worker can't save a customised page yet, so don't offer it.
+        GiftStore.info().then((i) => document.body.classList.toggle('old-worker', i.v === 1));
         gifts = await GiftStore.listMyGifts();
         paint();
       } catch (e) {

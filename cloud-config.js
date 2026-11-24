@@ -10,6 +10,10 @@ window.CLOUD = {
   // 'https://birthday-gift-api.yoursubdomain.workers.dev'
   WORKER_URL: 'https://birthday-gift-api.charan-birthday-sites.workers.dev',
 
+  // Which version of worker/src/index.js is deployed at WORKER_URL. 1 = the older one: email
+  // sign-in and editing a gift's page stay hidden. After deploying the current Worker, set it to 3.
+  WORKER_VERSION: 1,
+
   // Optional: a Stripe "Payment Link" (Stripe Dashboard → Payment Links → +New,
   // no code needed). Paste the checkout URL it gives you. Leave blank to show
   // a friendly "not set up yet" message instead of a broken button.

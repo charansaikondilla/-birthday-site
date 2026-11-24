@@ -20,6 +20,9 @@
   const CFG = global.CLOUD || {};
   const TRIAL_DAYS = Number(CFG.TRIAL_DAYS) > 0 ? Number(CFG.TRIAL_DAYS) : 7;
   const CLOUD_ON = !!CFG.WORKER_URL;
+  // The older Worker refuses the sign-in header from browsers (CORS), so signed-in actions can't work on it.
+  const OLD_WORKER = Number(CFG.WORKER_VERSION) === 1;
+  const needNewWorker = () => { if (OLD_WORKER) throw new Error('Gifts are paused while we update our server — please try again soon.'); };
 
   const slugify = () => Math.random().toString(36).slice(2, 8) + Math.random().toString(36).slice(2, 6);
   const daysLeft = (createdAt) => {
@@ -220,7 +223,7 @@
     const session = Auth.getSession();
     const { giftKey, soft, ...init } = options;
     const headers = { ...(init.headers || {}) };
-    if (session && session.session) headers.Authorization = `Bearer ${session.session}`;
+    if (session && session.session && !OLD_WORKER) headers.Authorization = `Bearer ${session.session}`;
     if (giftKey) headers['X-Gift-Key'] = giftKey;
     let res;
     try {
@@ -242,6 +245,8 @@
   let infoPromise = null;
   function workerInfo() {
     if (!CLOUD_ON) return Promise.resolve({ v: 0, accounts: false });
+    // Known older Worker: don't ask for /version (it has none, and the 404 shows as a console error).
+    if (OLD_WORKER) return Promise.resolve({ v: 1, accounts: false });
     if (!infoPromise) {
       infoPromise = fetch(`${CFG.WORKER_URL}/version`)
         .then((r) => (r.ok ? r.json() : { v: 1 }))
@@ -281,6 +286,7 @@
   const cloud = {
     label: 'cloud (Cloudflare — shared across every device, private to each link)',
     async createGift({ name, message, password }) {
+      needNewWorker();
       const { data } = await workerFetch('/gifts', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ slug: slugify(), name: name || '', message: message || '', password: password || '' }),
@@ -364,6 +370,7 @@
     },
     // Every gift owned by the signed-in user — powers the "my gifts" dashboard.
     async listMyGifts() {
+      needNewWorker();
       const { data } = await workerFetch('/me/gifts');
       return (data || []).map(mapGift);
     },

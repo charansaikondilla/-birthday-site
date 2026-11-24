@@ -62,6 +62,7 @@
     .gc-countdown { text-align: center; font-size: 13px; color: #ffc107; margin: 0 0 20px; }
     .gc-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 18px; }
     .gc-actions[hidden] { display: none; }
+    .old-worker .needs-edit { display: none !important; }
     .gc-actions a, .gc-actions button { flex: 1 1 160px; text-align: center; padding: 12px; border-radius: 6px; font-weight: 700; font-size: 13.5px; text-decoration: none; border: 0; cursor: pointer; }
     .gc-actions .primary { background: #fff; color: #000; }
     .gc-actions .primary:hover { background: #ddd; }
@@ -120,7 +121,7 @@
           <h2 id="gc-result-name" style="font-family:var(--hand);font-size:clamp(30px,5vw,42px);margin:2px 0 16px"></h2>
           <p class="gc-countdown" id="gc-countdown"></p>
           <div class="gc-actions" style="margin-top:0">
-            <a id="gc-customize" class="primary" href="#">✎ Customize their page</a>
+            <a id="gc-customize" class="primary needs-edit" href="#">✎ Customize their page</a>
             <a id="gc-view" class="ghost" href="#" target="_blank" rel="noopener">👁 See it as them</a>
           </div>
           <div class="gc-actions" id="gc-buy-row" hidden>
@@ -138,7 +139,7 @@
             <button id="gc-copy-msg" class="ghost" type="button">📋 Copy message</button>
             <a id="gc-qr-dl" class="ghost" href="#" download="birthday-qr.png">⬇ Download QR</a>
           </div>
-          <p class="gc-hint" style="margin-top:12px">Anyone with this link or QR code opens the page — no password, no edit buttons. Customize it first, then send it.</p>
+          <p class="gc-hint" style="margin-top:12px">Anyone with this link or QR code opens the page — no password, no edit buttons.<span class="needs-edit"> Customize it first, then send it.</span></p>
         </div>
         <div class="gc-card" style="text-align:center">
           <p class="gc-step-title">Friends &amp; family can add photos here</p>
@@ -168,6 +169,8 @@
     try { const draft = sessionStorage.getItem('premiere-draft-name'); if (draft && !$('#gc-name').value) $('#gc-name').value = draft; } catch {}
     try { const aud = window.SITE && SITE.audiences[sessionStorage.getItem('premiere-audience')]; if (aud) $('#gc-message').placeholder = aud.messagePlaceholder; } catch {}
 
+    // An older Worker can't save a customised page yet, so don't offer it.
+    GiftStore.info().then((i) => document.body.classList.toggle('old-worker', i.v === 1));
     let countdownTimer = null;
     let currentGift = null;
     // Online payment is off: the button only appears if a Stripe Payment Link is set in cloud-config.js.
