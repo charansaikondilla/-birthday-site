@@ -149,17 +149,16 @@ The page has `noindex`, so keep the repo private and share the link only with th
 - This is a personal, non-commercial birthday greeting styled after a streaming app; the logo and
   icons are drawn in CSS/SVG in this project.
 
-## 🔒 Private gift pages: password, customizing, Razorpay
+## 🔒 Private gift pages
 
 Each gift is its own private page with its own link and password:
 
 1. **Create** (`gift-create.html`, signed in): name + a password (🎲 Suggest makes one). You get a ready-made message with her link and the password: **📲 Send on WhatsApp** or **📋 Copy**.
 2. **Customize** (**✎ Customize their page**): opens her page with a red creator bar. ✎ Edit works exactly as on your own page, but every change (text, photos, videos, music) saves to **her link**. **👁 See it as her** shows the password screen.
 3. **She opens the link**: a Netflix-style **Sign In** screen asks for the password. After 8 wrong tries it waits 15 minutes, and "Remember me" keeps her signed in. Then the logo intro plays with sound.
-4. **Keep it forever**: 💳 pays ₹199 with Razorpay. Otherwise unpaid gifts are deleted after the 7-day trial.
-5. **My gifts** (`my-gifts.html`): change a gift's password (old sign-ins stop working), resend it, pay, or customize it.
+4. **My gifts** (`my-gifts.html`): share, customize, or remove an old password.
 
-**To switch it on, deploy the updated Worker and add your Razorpay keys. See [RAZORPAY.md](RAZORPAY.md).** Until then, gifts open without a password and nothing breaks.
+Online payment is off for now: every gift is free and is deleted after the 7-day trial. The earlier payment version is kept in git at commit `1706bde`.
 
 ## 🔊 Sounds
 
@@ -198,7 +197,7 @@ free trial and then deleted.
 `STRIPE_PAYMENT_LINK` inside `cloud-config.js`. Create that link for free at
 [Stripe Dashboard → Payment Links → "+ New"](https://dashboard.stripe.com/payment-links)
 (no code) once you have a Stripe account, then paste the checkout URL in. Until you do,
-the button shows a friendly "not set up yet" message instead of breaking.
+the button stays hidden.
 
 **Privacy — how "only people with the link" actually holds up:** there's no login system —
 a gift's code *is* its key, the same idea as an unlisted Google Drive link. Two things make

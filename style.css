@@ -1882,3 +1882,23 @@ textarea.inline-edit-field { resize: vertical; min-height: 4.5em; line-height: 1
 .share-warn a { color: #fff; }
 .share-note { min-height: 1em; margin: 12px 0 0; color: #46d369; font-size: 12.5px; }
 @media (max-width: 420px) { .share-card { padding: 22px 16px 16px; } .share-card h2 { font-size: 18px; } }
+
+/* ---------- Small-screen fixes ---------- */
+/* A shared link: spinner while the page loads */
+.gift-loading { position: fixed; inset: 0; z-index: 60; display: grid; place-items: center; background: #000; }
+.gift-loading::after { content: ""; width: 46px; height: 46px; border: 4px solid rgba(229, 9, 20, .25); border-top-color: var(--red); border-radius: 50%; animation: gift-spin .9s linear infinite; }
+@keyframes gift-spin { to { transform: rotate(360deg); } }
+/* Dark scroll bars (they were bright white on the black page) */
+.home, .modal-card, .nf-menu { scrollbar-color: #4d4d4d #141414; }
+@media (max-width: 600px) {
+  /* The bell menu ran off the left edge: pin it to the screen instead of to the bell */
+  .nf-notes { position: fixed; top: 60px; right: 10px; left: 10px; width: auto; min-width: 0; }
+  .nf-notes::before { display: none; }
+  /* The picture arrows sat on top of the title — swipe the picture instead */
+  .billboard.has-many .hero-arrow { display: none; }
+}
+@media (max-height: 520px) {
+  /* Phone on its side: the account menu was taller than the screen */
+  .nf-menu { max-height: calc(100vh - 84px); overflow-y: auto; }
+  .nf-menu::before { display: none; }
+}

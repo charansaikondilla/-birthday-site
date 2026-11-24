@@ -61,6 +61,7 @@
     .gc-link-row button:hover { background: #3d3d3d; }
     .gc-countdown { text-align: center; font-size: 13px; color: #ffc107; margin: 0 0 20px; }
     .gc-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 18px; }
+    .gc-actions[hidden] { display: none; }
     .gc-actions a, .gc-actions button { flex: 1 1 160px; text-align: center; padding: 12px; border-radius: 6px; font-weight: 700; font-size: 13.5px; text-decoration: none; border: 0; cursor: pointer; }
     .gc-actions .primary { background: #fff; color: #000; }
     .gc-actions .primary:hover { background: #ddd; }
@@ -108,7 +109,7 @@
             <li><b>1</b><span>You create the link and get a QR code — takes 10 seconds.</span></li>
             <li><b>2</b><span>Share it with as many people as you like; each one can add their own photos and videos.</span></li>
             <li><b>3</b><span>The birthday person opens the finished site and presses Play.</span></li>
-            <li><b>4</b><span>Everything is kept for <span id="gc-trial-days">7</span> days on a free trial, then it's automatically deleted — pay once<span id="gc-price-note"></span> to keep it forever.</span></li>
+            <li><b>4</b><span>Everything is kept for <span id="gc-trial-days">7</span> days on a free trial, then it's automatically deleted.</span></li>
           </ul>
         </div>
       </div>
@@ -122,11 +123,10 @@
             <a id="gc-customize" class="primary" href="#">✎ Customize their page</a>
             <a id="gc-view" class="ghost" href="#" target="_blank" rel="noopener">👁 See it as them</a>
           </div>
-          <div class="gc-actions">
+          <div class="gc-actions" id="gc-buy-row" hidden>
             <button id="gc-buy" class="gc-buy" type="button">💳 Keep it forever</button>
           </div>
           <p id="gc-paid-note" style="display:none;color:#1a9c4a;font-size:13px;font-weight:700;margin:8px 0 0">✓ Paid — this gift is kept forever</p>
-          <p id="gc-pay-msg" class="gc-error" hidden></p>
         </div>
         <div class="gc-card gc-send">
           <p class="gc-step-title">Send this to them</p>
@@ -170,18 +170,12 @@
 
     let countdownTimer = null;
     let currentGift = null;
-    let info = { v: 0, payments: null };
-    const priceText = () => (info.payments && info.payments.razorpay && info.payments.priceInr ? ` · ₹${info.payments.priceInr}` : '');
-    GiftStore.info().then((i) => {
-      info = i;
-      if (priceText()) $('#gc-price-note').textContent = ` (₹${info.payments.priceInr})`;
-    });
+    // Online payment is off: the button only appears if a Stripe Payment Link is set in cloud-config.js.
+    const PAY_LINK = (window.CLOUD && window.CLOUD.STRIPE_PAYMENT_LINK) || '';
     function paintPaid(gift) {
-      $('#gc-buy').style.display = gift.paid ? 'none' : '';
-      $('#gc-buy').textContent = `💳 Keep it forever${priceText()}`;
+      $('#gc-buy-row').hidden = !PAY_LINK || gift.paid;
       $('#gc-paid-note').style.display = gift.paid ? '' : 'none';
     }
-    function payMsg(text) { const m = $('#gc-pay-msg'); m.textContent = text || ''; m.hidden = !text; }
     function showResult(gift) {
       currentGift = gift;
       $('.gc-create').classList.add('is-hidden');
@@ -229,29 +223,11 @@
       setTimeout(() => { b.textContent = '📋 Copy message'; }, 2000);
     });
     $('#gc-buy').addEventListener('click', () => {
-      if (!currentGift) return;
-      payMsg('');
-      // Razorpay (when the Worker has its keys) — the normal way.
-      if (info.payments && info.payments.razorpay) {
-        const b = $('#gc-buy');
-        b.disabled = true; b.textContent = 'Opening Razorpay…';
-        const reset = () => { b.disabled = false; paintPaid(currentGift); };
-        GiftStore.payWithRazorpay(currentGift, {
-          onPaid: (fresh) => { currentGift = { ...currentGift, ...(fresh || {}), paid: true }; reset(); showResult(currentGift); },
-          onError: (e) => { reset(); payMsg(e.message || 'The payment did not go through — no money was taken.'); },
-          onClose: reset,
-        });
-        return;
-      }
-      const base = (window.CLOUD && window.CLOUD.STRIPE_PAYMENT_LINK) || '';
-      if (!base) {
-        payMsg('Payments aren\'t switched on yet. Add your Razorpay keys to the Worker (see RAZORPAY.md) and this button starts working.');
-        return;
-      }
+      if (!currentGift || !PAY_LINK) return;
       // client_reference_id tells Stripe which gift this payment is for —
       // the Worker's webhook reads it back to mark THAT one gift paid.
-      const sep = base.includes('?') ? '&' : '?';
-      const link = `${base}${sep}client_reference_id=${encodeURIComponent(currentGift.slug)}`;
+      const sep = PAY_LINK.includes('?') ? '&' : '?';
+      const link = `${PAY_LINK}${sep}client_reference_id=${encodeURIComponent(currentGift.slug)}`;
       window.open(link, '_blank', 'noopener');
     });
 
@@ -261,7 +237,7 @@
     // Demo mode: there's no webhook, so we optimistically mark it paid —
     // it's an honor-system trial on one browser, not a real charge gate.
     document.addEventListener('visibilitychange', async () => {
-      if (document.visibilityState !== 'visible' || !currentGift || currentGift.paid) return;
+      if (document.visibilityState !== 'visible' || !PAY_LINK || !currentGift || currentGift.paid) return;
       if (GiftStore.mode === 'demo') {
         currentGift = await GiftStore.markPaid(currentGift.slug);
         paintPaid(currentGift);

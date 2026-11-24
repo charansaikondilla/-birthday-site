@@ -168,6 +168,7 @@ p { line-height: 1.65; }
 /* Pricing */
 .pricing { background: var(--bg); }
 .plan-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 420px)); justify-content: center; gap: 22px; }
+.plan:only-child { grid-column: 1 / -1; justify-self: center; width: 100%; max-width: 420px; }
 .plan { position: relative; display: flex; flex-direction: column; padding: 36px; border: 1px solid var(--line); border-radius: 20px; background: var(--card); }
 .plan.is-featured { border-color: var(--gold); background: linear-gradient(170deg, #2b1e16, var(--card) 60%); box-shadow: 0 30px 70px rgba(0,0,0,.35); }
 .plan-badge { position: absolute; top: -12px; left: 36px; padding: 5px 12px; border-radius: 999px; background: var(--gold-light); color: #21160e; font-size: 11px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }

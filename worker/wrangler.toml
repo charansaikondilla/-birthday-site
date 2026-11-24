@@ -19,8 +19,6 @@ bucket_name = "gift-media"
 R2_PUBLIC_URL = "https://pub-cd8f27e339e740558e1cc8f3ba3a9b89.r2.dev"
 # Keep this the same as TRIAL_DAYS in cloud-config.js.
 TRIAL_DAYS = "7"
-# Price to keep a gift forever, in rupees (Razorpay). Keys are secrets — see RAZORPAY.md.
-PRICE_INR = "199"
 # Google Sign-In OAuth Client ID (from Google Cloud Console — this is public,
 # it identifies your app, not a secret). Keep this the same value as
 # GOOGLE_CLIENT_ID in cloud-config.js.

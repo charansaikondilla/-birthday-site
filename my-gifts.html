@@ -42,8 +42,6 @@
   .actions a:hover, .actions button:hover { border-color: #fff; background: rgba(255, 255, 255, .06); }
   .actions .primary { border-color: #fff; background: #fff; color: #000; }
   .actions .primary:hover { background: #ddd; }
-  .actions .pay { border-color: var(--red); background: var(--red); }
-  .actions .pay:hover { background: #f6121d; }
   .panel { margin-top: 14px; padding: 14px; border: 1px solid #333; border-radius: 6px; background: #0d0d0d; }
   .panel label { display: block; margin-bottom: 6px; color: var(--muted); font-size: 12px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; }
   .row { display: flex; flex-wrap: wrap; gap: 8px; }
@@ -70,7 +68,7 @@
   </header>
   <main>
     <h1>My gifts</h1>
-    <p class="lead">Each gift is its own page with its own link and QR code. Customize it, then send the link or QR — they open it without a password and never see the edit buttons. Keep it forever with a one-time payment.</p>
+    <p class="lead">Each gift is its own page with its own link and QR code. Customize it, then send the link or QR — they open it without a password and never see the edit buttons.</p>
     <a class="new-gift" href="gift-create.html">＋ Create a new gift</a>
     <p class="worker-note" id="worker-note" hidden></p>
     <div id="list"><p class="status">Loading your gifts…</p></div>
@@ -97,14 +95,12 @@
       try { await navigator.clipboard.writeText(text); btn.textContent = 'Copied ✓'; } catch { btn.textContent = 'Select & copy above'; }
       setTimeout(() => { btn.textContent = label; }, 2000);
     };
-    let info = { v: 0, payments: null };
     let gifts = [];
 
     function card(g) {
       const expired = !g.paid && GiftStore.isExpired(g.createdAt);
-      const price = info.payments && info.payments.priceInr ? `₹${info.payments.priceInr}` : '';
       const badges = [
-        g.paid ? '<span class="badge paid">Paid — kept forever</span>' : `<span class="badge trial">${expired ? 'Trial expired' : 'Free trial · ' + esc(GiftStore.fmtLeft(g.createdAt))}</span>`,
+        g.paid ? '<span class="badge paid">Kept forever</span>' : `<span class="badge trial">${expired ? 'Trial expired' : 'Free trial · ' + esc(GiftStore.fmtLeft(g.createdAt))}</span>`,
         g.hasPassword ? '<span class="badge warn">🔒 Has an old password</span>' : '<span class="badge lock">🔓 Opens with the link</span>',
       ].join('');
       const view = GiftStore.viewLinkFor(g.slug);
@@ -117,7 +113,6 @@
           <button type="button" data-act="share">📤 Share link &amp; QR</button>
           ${g.hasPassword ? '<button type="button" data-act="remove-pw">🔓 Remove password</button>' : ''}
           <button type="button" data-act="copy-upload">＋ Friends' photo link</button>
-          ${!g.paid ? `<button type="button" class="pay" data-act="pay">💳 Keep forever${price ? ' · ' + price : ''}</button>` : ''}
         </div>
         <div class="panel" data-panel hidden></div>
         <p class="msg" data-msg hidden></p>
@@ -168,20 +163,11 @@
         } catch (err) { say(el, err.message || 'Could not remove the password.', false); b.disabled = false; b.textContent = '🔓 Remove password'; }
         return;
       }
-      if (act === 'pay') {
-        b.disabled = true; b.textContent = 'Opening Razorpay…';
-        const reset = () => { b.disabled = false; b.textContent = `💳 Keep forever${info.payments && info.payments.priceInr ? ' · ₹' + info.payments.priceInr : ''}`; };
-        GiftStore.payWithRazorpay(g, {
-          onPaid: (fresh) => { Object.assign(g, fresh || {}, { paid: true }); paint(); say(list.querySelector(`[data-slug="${CSS.escape(g.slug)}"]`), 'Payment received ✓ — this gift is kept forever.', true); },
-          onError: (err) => { reset(); say(el, err.message || 'The payment did not go through.', false); },
-          onClose: reset,
-        });
-      }
     });
 
     (async () => {
       try {
-        [info, gifts] = await Promise.all([GiftStore.info(), GiftStore.listMyGifts()]);
+        gifts = await GiftStore.listMyGifts();
         paint();
       } catch (e) {
         list.innerHTML = `<p class="status">Could not load your gifts: ${esc(e.message || 'unknown error')}</p>`;

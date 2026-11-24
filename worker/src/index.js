@@ -12,7 +12,6 @@
      • a password (stored only as a salted PBKDF2 hash) — the birthday person
        types it on the Netflix-style sign-in screen; wrong guesses are rate-limited
      • the creator's own customised page (`config`), editable only by the creator
-     • Razorpay payments (order → checkout → signature check, + webhook backup)
    and closes v1's gaps: the creator's email is never sent to visitors, the
    photo list needs the password, deleting needs the creator, and the general
    /uploads route needs a signed-in user.
@@ -44,7 +43,6 @@ const EMAIL_RE = /^[^\s@]{1,64}@[^\s@]{1,190}\.[^\s@]{2,}$/;
 // Email + password accounts live in their own namespace ("pw:you@mail.com"), so nobody can
 // create a password account with someone else's Gmail address and see their Google gifts.
 const PW_PREFIX = 'pw:';
-const shownEmail = (identity) => String(identity || '').replace(/^pw:/, '');
 const accountPasswordProblem = (pw) => {
   pw = String(pw || '');
   if (pw.length < 6) return 'your password needs at least 6 characters';
@@ -221,9 +219,7 @@ async function canView(request, env, row) {
 const listMedia = async (env, slug) => (await env.DB
   .prepare('SELECT id, url, type, created_at FROM gift_media WHERE slug = ? ORDER BY created_at ASC').bind(slug).all()).results || [];
 
-/* ---------- Razorpay ---------- */
-const priceInr = (env) => Math.max(1, Math.round(Number(env.PRICE_INR || 199)));
-const razorpayReady = (env) => !!(env.RAZORPAY_KEY_ID && env.RAZORPAY_KEY_SECRET);
+/* ---------- paid gifts are never auto-deleted ---------- */
 async function markPaid(env, slug, payId) {
   await env.DB.prepare("UPDATE gifts SET paid = 1, pay_id = ?, paid_at = datetime('now') WHERE slug = ? AND paid = 0").bind(payId || '', slug).run();
 }
@@ -242,7 +238,7 @@ export default {
 
       // GET /version  -> what this Worker can do (the site adapts to an older Worker).
       if (route('GET', 'version')) {
-        return json({ v: API_VERSION, passwords: true, accounts: true, payments: { razorpay: razorpayReady(env), keyId: env.RAZORPAY_KEY_ID || '', priceInr: priceInr(env), currency: 'INR' } });
+        return json({ v: API_VERSION, passwords: true, accounts: true });
       }
 
       // POST /auth/google  { credential }  -> verify a Google Sign-In ID token and
@@ -438,53 +434,6 @@ export default {
         const key = `${folder}/${Date.now()}-${uid().slice(0, 8)}-${cleanSegment(url.searchParams.get('filename'), 'upload')}`;
         await env.GIFT_MEDIA.put(key, request.body, { httpMetadata: { contentType } });
         return json({ url: `${env.R2_PUBLIC_URL}/${key}`, path: key, type: contentType }, 201);
-      }
-
-      // POST /gifts/:slug/pay/order  -> a Razorpay order for this gift (creator only).
-      if (route('POST', 'gifts', '*', 'pay', 'order')) {
-        if (!razorpayReady(env)) return bad('payments are not set up on this server yet', 503);
-        const o = await requireOwner(request, env, parts[1]);
-        if (o.error) return o.error;
-        if (o.row.paid) return bad('this gift is already paid for', 409);
-        const amount = priceInr(env) * 100; // paise
-        const res = await fetch(`${env.RAZORPAY_API_BASE || 'https://api.razorpay.com'}/v1/orders`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', Authorization: `Basic ${btoa(`${env.RAZORPAY_KEY_ID}:${env.RAZORPAY_KEY_SECRET}`)}` },
-          body: JSON.stringify({ amount, currency: 'INR', receipt: o.row.slug, notes: { slug: o.row.slug } }),
-        });
-        const order = await res.json().catch(() => null);
-        if (!res.ok || !order || !order.id) return bad((order && order.error && order.error.description) || 'Razorpay could not create the order', 502);
-        await env.DB.prepare('UPDATE gifts SET pay_order_id = ? WHERE slug = ?').bind(order.id, o.row.slug).run();
-        return json({ orderId: order.id, amount: order.amount, currency: order.currency, keyId: env.RAZORPAY_KEY_ID, email: shownEmail(o.auth.email), name: o.row.name });
-      }
-
-      // POST /gifts/:slug/pay/verify  { razorpay_order_id, razorpay_payment_id, razorpay_signature }
-      if (route('POST', 'gifts', '*', 'pay', 'verify')) {
-        if (!razorpayReady(env)) return bad('payments are not set up on this server yet', 503);
-        const o = await requireOwner(request, env, parts[1]);
-        if (o.error) return o.error;
-        const b = await readJsonBody(request);
-        if (!o.row.pay_order_id || b.razorpay_order_id !== o.row.pay_order_id) return bad('this payment is not for this gift', 400);
-        const expected = await hmacHex(env.RAZORPAY_KEY_SECRET, `${b.razorpay_order_id}|${b.razorpay_payment_id}`);
-        if (!safeEqual(expected, b.razorpay_signature)) return bad('the payment could not be verified', 400);
-        await markPaid(env, o.row.slug, String(b.razorpay_payment_id || ''));
-        return json(ownerView(await getGiftRow(env, o.row.slug)));
-      }
-
-      // POST /razorpay/webhook  -> Razorpay's server-to-server backup (in case the buyer closed the tab).
-      if (route('POST', 'razorpay', 'webhook')) {
-        const raw = await request.text();
-        if (!env.RAZORPAY_WEBHOOK_SECRET || !safeEqual(await hmacHex(env.RAZORPAY_WEBHOOK_SECRET, raw), request.headers.get('X-Razorpay-Signature'))) return bad('invalid signature', 400);
-        const ev = JSON.parse(raw);
-        if (ev.event === 'payment.captured' || ev.event === 'order.paid') {
-          const pay = ev.payload && ev.payload.payment && ev.payload.payment.entity;
-          const order = ev.payload && ev.payload.order && ev.payload.order.entity;
-          const slug = String((pay && pay.notes && pay.notes.slug) || (order && order.receipt) || '');
-          const orderId = String((pay && pay.order_id) || (order && order.id) || '');
-          const row = slug && (await getGiftRow(env, slug));
-          if (row && row.pay_order_id && row.pay_order_id === orderId) await markPaid(env, slug, pay ? pay.id : '');
-        }
-        return json({ received: true });
       }
 
       // POST /stripe/webhook  -> kept for sites still using a Stripe Payment Link.

@@ -237,7 +237,7 @@ window.SITE = {
 
   pricing: {
     eyebrow: 'Pricing',
-    title: 'Start free. <em>Keep it forever.</em>',
+    title: 'Free. <em>No payment needed.</em>',
     plans: [
       {
         name: 'Free trial',
@@ -247,18 +247,6 @@ window.SITE = {
         features: ['Unlimited contributors', 'Photos & videos', 'Private link + QR code', 'Full birthday experience'],
         note: 'Uploads are deleted automatically after {days} days.',
         cta: 'Start for free',
-      },
-      {
-        name: 'Keep forever',
-        // Leave price empty ('') to show "Coming soon".
-        price: '',
-        period: 'one-time',
-        text: 'Make the gift permanent so they can rewatch it every year.',
-        features: ['Everything in the free trial', 'Never expires', 'Memories kept safely in the cloud', 'Rewatch on every birthday'],
-        note: 'Upgrade any time from your gift page.',
-        cta: 'Create a gift first',
-        featured: true,
-        badge: 'Most loved',
       },
     ],
   },
@@ -272,7 +260,7 @@ window.SITE = {
       { q: 'Do friends and family need to sign in to upload?', a: 'No. Anyone with the upload link can add photos and videos from any phone browser — no app, no account.' },
       { q: 'Who can see the gift?', a: 'Only people with the link. Each gift has a long, random code and there is no public gallery or search.' },
       { q: 'Can I preview it before sharing?', a: 'Yes. After creating a gift you get a link to open its birthday page, and you can <a href="netflix.html">explore the sample</a> right now.' },
-      { q: 'What happens when the free trial ends?', a: 'After {days} days the gift expires and its uploads are deleted, unless you keep it forever.' },
+      { q: 'What happens when the free trial ends?', a: 'After {days} days the gift expires and its uploads are deleted automatically, so save your favourite photos before then.' },
       { q: 'Can I change the text and photos later?', a: 'Yes. Open the birthday page, tap Edit, then click any text or picture to change it.' },
     ],
   },

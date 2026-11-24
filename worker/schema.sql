@@ -15,8 +15,8 @@ CREATE TABLE IF NOT EXISTS gifts (
   pass_v       INTEGER NOT NULL DEFAULT 0,  -- bumps on every change → old sign-ins stop working
   config       TEXT NOT NULL DEFAULT '',   -- the creator's customised page (JSON)
   updated_at   TEXT NOT NULL DEFAULT '',
-  pay_order_id TEXT NOT NULL DEFAULT '',   -- Razorpay order
-  pay_id       TEXT NOT NULL DEFAULT '',   -- Razorpay payment
+  pay_order_id TEXT NOT NULL DEFAULT '',   -- (unused for now)
+  pay_id       TEXT NOT NULL DEFAULT '',   -- payment reference
   paid_at      TEXT NOT NULL DEFAULT ''
 );
 

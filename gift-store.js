@@ -111,8 +111,6 @@
       return this.view(g);
     },
     async uploadGiftAsset() { return null; }, // demo: the page keeps files in this browser itself
-    async createOrder() { throw new Error('Payments need cloud mode (the Worker) — see RAZORPAY.md.'); },
-    async verifyPayment() { throw new Error('Payments need cloud mode (the Worker) — see RAZORPAY.md.'); },
     // Demo mode has no server to receive a Stripe webhook, so paying just
     // flips this flag locally (honor system) — real cloud mode only ever
     // sets `paid` from a verified webhook, never from the browser.
@@ -240,15 +238,15 @@
     return { data: await res.json().catch(() => null), status: res.status };
   }
   // What the Worker can do. An older (v1) Worker has no /version → { v: 1 }, and the site
-  // simply skips passwords/payments until the new Worker is deployed — no errors.
+  // simply skips passwords until the new Worker is deployed — no errors.
   let infoPromise = null;
   function workerInfo() {
-    if (!CLOUD_ON) return Promise.resolve({ v: 0, payments: null });
+    if (!CLOUD_ON) return Promise.resolve({ v: 0, accounts: false });
     if (!infoPromise) {
       infoPromise = fetch(`${CFG.WORKER_URL}/version`)
         .then((r) => (r.ok ? r.json() : { v: 1 }))
-        .then((d) => ({ v: Number(d && d.v) || 1, accounts: !!(d && d.accounts), payments: (d && d.payments) || null }))
-        .catch(() => ({ v: 1, accounts: false, payments: null }));
+        .then((d) => ({ v: Number(d && d.v) || 1, accounts: !!(d && d.accounts) }))
+        .catch(() => ({ v: 1, accounts: false }));
     }
     return infoPromise;
   }
@@ -341,16 +339,6 @@
       if (!data || !data.url) throw new Error('The upload did not finish — please try again.');
       return data;
     },
-    async createOrder(slug) {
-      const { data } = await workerFetch(`/gifts/${encodeURIComponent(slug)}/pay/order`, { method: 'POST' });
-      return data;
-    },
-    async verifyPayment(slug, resp) {
-      const { data } = await workerFetch(`/gifts/${encodeURIComponent(slug)}/pay/verify`, {
-        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(resp),
-      });
-      return mapGift(data);
-    },
     // Cloud mode never sets `paid` from the browser — only the Worker's
     // Stripe webhook does that. This just re-fetches so the UI can pick up
     // the webhook's result after the user comes back from checkout.
@@ -382,41 +370,6 @@
   };
 
   const backend = CLOUD_ON ? cloud : demo;
-
-  /* ------------------------- Razorpay checkout ------------------------- */
-  function loadScript(src) {
-    return new Promise((ok, no) => {
-      if (global.Razorpay) return ok();
-      const s = document.createElement('script');
-      s.src = src;
-      s.async = true;
-      s.onload = () => ok();
-      s.onerror = () => { s.remove(); no(new Error('Could not load Razorpay — check your internet connection.')); };
-      document.head.appendChild(s);
-    });
-  }
-  // The order is made by the Worker (so the price can't be changed in the browser), then
-  // Razorpay's own checkout window opens, then the Worker checks Razorpay's signature and
-  // marks the gift paid.
-  async function payWithRazorpay(gift, { onPaid, onError, onClose } = {}) {
-    const fail = (e) => { if (onError) onError(e instanceof Error ? e : new Error(String(e))); };
-    try {
-      const info = await workerInfo();
-      if (!info.payments || !info.payments.razorpay) throw new Error('Payments are not switched on yet — the site owner still needs to add the Razorpay keys (see RAZORPAY.md).');
-      await loadScript('https://checkout.razorpay.com/v1/checkout.js');
-      if (typeof global.Razorpay !== 'function') throw new Error('Could not load Razorpay — check your internet connection.');
-      const order = await backend.createOrder(gift.slug);
-      const rzp = new global.Razorpay({
-        key: order.keyId, amount: order.amount, currency: order.currency, order_id: order.orderId,
-        name: 'Premiere', description: `Birthday page${order.name ? ' for ' + order.name : ''} — keep it forever`,
-        prefill: { email: order.email || '' }, notes: { slug: gift.slug }, theme: { color: '#e50914' },
-        handler: async (resp) => { try { const g = await backend.verifyPayment(gift.slug, resp); if (onPaid) onPaid(g); } catch (e) { fail(e); } },
-        modal: { ondismiss: () => { if (onClose) onClose(); } },
-      });
-      if (rzp.on) rzp.on('payment.failed', (r) => fail(new Error((r && r.error && r.error.description) || 'The payment did not go through — no money was taken.')));
-      rzp.open();
-    } catch (e) { fail(e); }
-  }
 
   global.GiftStore = {
     mode: CLOUD_ON ? 'cloud' : 'demo',
@@ -452,7 +405,6 @@
     uploadGiftAsset: (...a) => backend.uploadGiftAsset(...a),
     info: workerInfo,
     Keys,
-    payWithRazorpay,
     // The message the creator sends (WhatsApp / copy). Links open without a password;
     // a password line is only added for an older gift that still has one.
     shareMessage(gift, password) {

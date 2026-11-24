@@ -265,7 +265,7 @@ function normalise(c) {
   if (!c.marqueeV) out.rows.forEach((r) => { if (r.title === 'Top 10 Memories' || r.title === 'Top 5 Trending' || r.title === 'My List') r.autoScroll = true; });
   out.marqueeV = 1;
   // Top 10 became Top 5: once per page, rename the old default row; every big-number row keeps 5 cards.
-  if (!c.top5V) out.rows.forEach((r) => { if (/^top 10/i.test(r.title)) r.title = r.title === 'Top 10 Memories' ? 'Top 5 Trending' : r.title.replace(/^top 10/i, 'Top 5'); });
+  if (!c.top5V) out.rows.forEach((r) => { if (/^top 10\b/i.test(r.title)) r.title = r.title === 'Top 10 Memories' ? 'Top 5 Trending' : r.title.replace(/^top 10/i, 'Top 5'); });
   out.top5V = 1;
   capTop5(out.rows);
   out.previewInterval = Math.max(300, Number(out.previewInterval) || base.previewInterval);
@@ -348,7 +348,7 @@ $('#profiles-skip').addEventListener('click', () => { stopAuto(); openHome(false
 function renderProfiles() {
   const grid = $('#profiles-grid');
   grid.innerHTML = '';
-  cfg.profiles.forEach((p) => {
+  cfg.profiles.forEach((p, i) => {
     const b = document.createElement('button');
     b.className = 'profile';
     b.appendChild(mediaEl(p.image));
@@ -356,6 +356,8 @@ function renderProfiles() {
     b.appendChild(s);
     b.addEventListener('click', (e) => {
       if (isEditing()) { e.preventDefault(); editProfile(p); return; }
+      activeProfile = i;
+      paintAccount();
       openHome(true);
     });
     grid.appendChild(b);
@@ -1158,12 +1160,14 @@ function openHome(fromProfiles) {
   document.body.classList.add('is-ready');
   profiles.hidden = true;
   stopSlides();
+  resetCredits();
   player.hidden = true;
   document.body.classList.remove('in-player');
   home.hidden = false;
   home.scrollTop = 0;
   cycleHero();
   if (titleTyped || !fromProfiles) {
+    typeGen++; // stop a title that is still being typed, or it would be written twice
     $('#title-text').textContent = fullTitle();
     $('#title').classList.add('done');
     return;
@@ -1179,7 +1183,7 @@ function openHome(fromProfiles) {
 }
 
 /* ---------- 4. Player (pictures and videos, one after the other) ---------- */
-const slides = { imgs: [], index: 0, elapsed: 0, start: 0, raf: 0, running: false, hideTimer: 0 };
+const slides = { imgs: [], index: 0, elapsed: 0, start: 0, last: 0, raf: 0, running: false, hideTimer: 0 };
 function bindPlayer() {
   $('#back').addEventListener('click', () => openHome(false));
   $('#pause').addEventListener('click', togglePause);
@@ -1246,7 +1250,7 @@ function openPlayer(start = 0) {
   if (!slides.imgs.length) return;
   home.hidden = true;
   clearInterval(heroTimer);
-  finale.hidden = true;
+  resetCredits();
   player.hidden = false;
   document.body.classList.add('in-player');
   player.classList.remove('is-paused');
@@ -1268,7 +1272,7 @@ function goTo(i) {
   const el = slides.imgs[slides.index];
   el.classList.add('is-on');
   slides.elapsed = 0;
-  slides.start = performance.now();
+  slides.last = slides.start = performance.now();
   const paused = player.classList.contains('is-paused');
   // While paused, ‹ › only change the picture — the clock stays stopped until Play.
   // (Re)start the clock for this picture. frame() stops its own loop when it calls
@@ -1285,6 +1289,9 @@ function advance() {
 }
 function frame(now) {
   if (!slides.running) return;
+  // The browser stops this loop in a background tab: don't count that time, or a picture is skipped.
+  if (slides.last && now - slides.last > 1000) slides.start += now - slides.last;
+  slides.last = now;
   slides.elapsed = now - slides.start;
   paintProgress();
   // Videos advance when they end (see renderPlayer); the clock is only a safety net if one cannot play.
@@ -1308,7 +1315,8 @@ function togglePause() {
     playerUI.classList.remove('is-hidden');
     musicPause();
   } else {
-    slides.start = performance.now() - slides.elapsed;
+    slides.last = performance.now();
+    slides.start = slides.last - slides.elapsed;
     slides.running = true;
     if (el) { el.classList.remove('is-paused'); if (el.tagName === 'VIDEO') playVideo(el); }
     slides.raf = requestAnimationFrame(frame);
@@ -1323,8 +1331,19 @@ function stopSlides() {
   slides.imgs.forEach((el) => { if (el.tagName === 'VIDEO') el.pause(); });
   musicStop();
 }
+// The end credits: their timers and scroll position are cleared every time they are left,
+// so they play properly the second time too.
+const creditTimers = [];
+function resetCredits() {
+  creditTimers.splice(0).forEach(clearTimeout);
+  finale.hidden = true;
+  const reel = document.getElementById('credits-reel'), actions = document.getElementById('credits-actions');
+  if (reel) { reel.style.transition = 'none'; reel.style.transform = ''; }
+  if (actions) actions.classList.remove('is-visible');
+}
 function showFinale() {
   stopSlides();
+  resetCredits();
   hideUI();
 
   // Build the credits block with dynamic name
@@ -1346,27 +1365,24 @@ function showFinale() {
   finale.hidden = false;
   musicPlay(); // the song carries on under the end credits
 
-  // Scroll credits after 1 s delay — calculate distance dynamically
-  setTimeout(() => {
-    const reel = document.getElementById('credits-reel');
-    const wrap = document.getElementById('credits-wrap');
-    if (!reel || !wrap) return;
-    const reelH = reel.scrollHeight;
-    const wrapH = wrap.clientHeight;
-    const duration = Math.max(14, (reelH + wrapH) / 55); // 55 px/s
-    reel.style.transform = `translateY(${wrapH}px)`;
-    requestAnimationFrame(() => {
-      requestAnimationFrame(() => {
-        reel.style.transition = `transform ${duration}s linear`;
-        reel.style.transform = `translateY(-${reelH}px)`;
-      });
-    });
+  const reel = document.getElementById('credits-reel');
+  const wrap = document.getElementById('credits-wrap');
+  if (!reel || !wrap) return;
+  const reelH = reel.scrollHeight;
+  const wrapH = wrap.clientHeight;
+  const duration = Math.max(14, (reelH + wrapH) / 55); // 55 px/s
+  // Wait below the screen, then scroll up — distance worked out from the real sizes.
+  reel.style.transform = `translateY(${wrapH}px)`;
+  void reel.offsetWidth; // commit the start position before the scroll begins
+  creditTimers.push(setTimeout(() => {
+    reel.style.transition = `transform ${duration}s linear`;
+    reel.style.transform = `translateY(-${reelH}px)`;
     // Show action buttons after 60 % of the scroll completes
-    setTimeout(() => {
+    creditTimers.push(setTimeout(() => {
       const actions = document.getElementById('credits-actions');
       if (actions) actions.classList.add('is-visible');
-    }, duration * 600);
-  }, 1000);
+    }, duration * 600));
+  }, 400));
 }
 
 /* ---------- Sound: the intro sting + the song during the slideshow ----------
@@ -3314,17 +3330,22 @@ async function tryGiftMode() {
   const slug = giftSlugFromURL();
   if (!slug || typeof GiftStore === 'undefined') return false;
   const preview = new URLSearchParams(location.search).has('preview');
+  const loading = document.createElement('div');
+  loading.className = 'gift-loading';
+  loading.setAttribute('role', 'status');
+  loading.setAttribute('aria-label', 'Loading');
+  document.body.appendChild(loading);
   try {
     const gift = await GiftStore.getGift(slug);
     if (!gift) { showGiftScreen("This gift isn't here", "We couldn't find a gift with this link — it may have been deleted after its free trial ended.", true); return true; }
-    if (!gift.paid && GiftStore.isExpired(gift.createdAt)) { showGiftScreen('This gift has expired', `Its ${GiftStore.trialDays}-day free trial ended. Buy the gift to keep it forever, or create a new one.`, true); return true; }
+    if (!gift.paid && GiftStore.isExpired(gift.createdAt)) { showGiftScreen('This gift has expired', `Its ${GiftStore.trialDays}-day free trial ended. You can create a new one any time.`, true); return true; }
     const owner = gift.owner && !preview;
     let full;
     if (owner) full = await GiftStore.loadGift(slug);
-    else if (gift.locked && (preview || !GiftStore.Keys.get(slug))) full = await showGate(gift);
+    else if (gift.locked && (preview || !GiftStore.Keys.get(slug))) { loading.remove(); full = await showGate(gift); }
     else {
       full = await GiftStore.loadGift(slug);
-      if (full && full.locked) full = await showGate(gift); // the saved key is old (password changed)
+      if (full && full.locked) { loading.remove(); full = await showGate(gift); } // the saved key is old (password changed)
     }
     if (!full || !full.gift) { showGiftScreen("This gift isn't here", "We couldn't open this gift — it may have been deleted.", true); return true; }
     giftCtx = { slug, owner, gift: full.gift, media: full.media || [] };
@@ -3344,7 +3365,7 @@ async function tryGiftMode() {
   } catch (e) {
     showGiftScreen('Something went wrong', e.message || 'Could not load this gift right now.', true);
     return true;
-  }
+  } finally { loading.remove(); }
 }
 
 /* ---------- Authentication & Logout ---------- */
