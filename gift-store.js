@@ -39,6 +39,51 @@
     return `${hours}h ${mins}m left`;
   };
 
+  /* ---------- Photos & videos: the right type and name, and "can this be played?" ---------- */
+  const EXT_TYPE = {
+    mp4: 'video/mp4', m4v: 'video/mp4', mov: 'video/mp4', qt: 'video/mp4', webm: 'video/webm', ogv: 'video/ogg', '3gp': 'video/3gpp', '3g2': 'video/3gpp2', mkv: 'video/x-matroska', avi: 'video/x-msvideo',
+    jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png', gif: 'image/gif', webp: 'image/webp', avif: 'image/avif', bmp: 'image/bmp', heic: 'image/heic', heif: 'image/heif',
+    mp3: 'audio/mpeg', m4a: 'audio/mp4', aac: 'audio/aac', wav: 'audio/wav', ogg: 'audio/ogg',
+  };
+  const TYPE_EXT = { 'video/mp4': 'mp4', 'video/webm': 'webm', 'video/ogg': 'ogv', 'video/3gpp': '3gp', 'video/x-matroska': 'mkv', 'image/jpeg': 'jpg', 'image/png': 'png', 'image/gif': 'gif', 'image/webp': 'webp', 'audio/mpeg': 'mp3', 'audio/mp4': 'm4a' };
+  const extOf = (name) => ((/\.([a-z0-9]{2,5})$/i.exec(name || '') || [])[1] || '').toLowerCase();
+  // Some phones and computers leave the type empty, so the ending counts too. iPhone .mov = MP4 inside.
+  function mediaType(file) {
+    let type = String((file && file.type) || '').split(';')[0].toLowerCase();
+    if (!/^(image|video|audio)\//.test(type)) type = EXT_TYPE[extOf(file && file.name)] || type;
+    return type === 'video/quicktime' || type === 'video/x-m4v' ? 'video/mp4' : type;
+  }
+  const isVisual = (file) => /^(image|video)\//.test(mediaType(file));
+  // The same file with a correct type and a name that always ends in a real file ending.
+  function mediaFile(file) {
+    const type = mediaType(file), name = file.name || 'file', known = EXT_TYPE[extOf(name)];
+    const base = known ? name.slice(0, -extOf(name).length - 1) : name;
+    const ext = known ? extOf(name) : TYPE_EXT[type] || (type.startsWith('video/') ? 'mp4' : '');
+    const full = `${base.slice(0, 80) || 'file'}${ext ? `.${ext}` : ''}`;
+    return full === file.name && type === file.type ? file : new File([file], full, { type });
+  }
+  // Can a video be played? → { error } (this browser can't), { warn } (plays here, maybe not everywhere) or {}.
+  async function checkVideo(file) {
+    if (!mediaType(file).startsWith('video/')) return {};
+    const url = URL.createObjectURL(new Blob([file], { type: mediaType(file) }));
+    const v = document.createElement('video');
+    v.muted = true; v.playsInline = true; v.preload = 'metadata';
+    const state = await new Promise((done) => {
+      const timer = setTimeout(() => done('unsure'), 8000);
+      const end = (s) => { clearTimeout(timer); done(s); };
+      v.addEventListener('loadedmetadata', () => end(v.videoWidth ? 'ok' : 'bad'));
+      v.addEventListener('error', () => end('bad'));
+      v.src = url;
+    });
+    v.removeAttribute('src'); v.load();
+    URL.revokeObjectURL(url);
+    if (state === 'bad') return { error: `“${file.name || 'This video'}” is in a video format browsers can't play. Please save it as MP4 (H.264) and add it again. On iPhone: Settings → Camera → Formats → Most Compatible.` };
+    const part = async (a, b) => new TextDecoder('latin1').decode(await file.slice(a, b).arrayBuffer());
+    const size = file.size, text = (await part(0, Math.min(size, 1e6))) + (size > 1e6 ? await part(Math.max(1e6, size - 1e6), size) : '');
+    if (/hvc1|hev1|dvh1/.test(text)) return { warn: 'This video is in a newer format (HEVC). It plays on most phones, but an MP4 (H.264) video plays everywhere.' };
+    return {};
+  }
+
   // Demo-mode password hash (PBKDF2 in the browser) — so the demo never stores the password itself.
   async function demoHash(password, saltB64) {
     const salt = saltB64 ? Uint8Array.from(atob(saltB64), (c) => c.charCodeAt(0)) : crypto.getRandomValues(new Uint8Array(16));
@@ -278,6 +323,7 @@
   // cloud project is configured, so callers can fall back to local storage.
   async function cloudUploadMedia(file, folder = 'site') {
     if (!CLOUD_ON) return null;
+    file = mediaFile(file);
     const q = `folder=${encodeURIComponent(folder)}&filename=${encodeURIComponent(file.name)}`;
     const { data } = await workerFetch(`/uploads?${q}`, { method: 'POST', headers: { 'Content-Type': file.type || 'application/octet-stream' }, body: file });
     return data; // { url, path, type }
@@ -338,6 +384,7 @@
     },
     // The creator's own photo / video / song for the page → { url }
     async uploadGiftAsset(slug, file) {
+      file = mediaFile(file);
       const q = `filename=${encodeURIComponent(file.name || 'file')}`;
       const { data } = await workerFetch(`/gifts/${encodeURIComponent(slug)}/assets?${q}`, {
         method: 'POST', headers: { 'Content-Type': file.type || 'application/octet-stream' }, body: file,
@@ -350,6 +397,7 @@
     // the webhook's result after the user comes back from checkout.
     async markPaid(slug) { return this.getGift(slug); },
     async addMedia(slug, file) {
+      file = mediaFile(file);
       const q = `filename=${encodeURIComponent(file.name)}`;
       const { notFound, data } = await workerFetch(`/gifts/${encodeURIComponent(slug)}/media?${q}`, {
         method: 'POST', headers: { 'Content-Type': file.type || 'application/octet-stream' }, body: file,
@@ -382,6 +430,7 @@
     mode: CLOUD_ON ? 'cloud' : 'demo',
     label: backend.label,
     trialDays: TRIAL_DAYS,
+    mediaType, isVisual, mediaFile, checkVideo,
     slugify,
     isExpired,
     daysLeft,

@@ -10,9 +10,9 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&family=Caveat:wght@700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="style.css?v=1126">
   <script src="cloud-config.js"></script>
-  <script src="gift-store.js"></script>
+  <script src="gift-store.js?v=1126"></script>
   <!-- No auth check here — anyone with a gift link can add photos & videos -->
   <style>
     .gu-page { position: relative; min-height: 100%; height: auto; overflow-y: auto; display: block; padding: clamp(20px,4vh,50px) 18px 60px; }
@@ -58,14 +58,14 @@
     </div>
   </div>
 
-  <input id="gu-file-input" type="file" accept="image/*,video/*" multiple hidden>
+  <input id="gu-file-input" type="file" accept="image/*,video/*,.mov,.mp4,.m4v,.3gp,.mkv" multiple hidden>
 
   <script>
     const $ = (s) => document.querySelector(s);
     const app = $('#gu-app');
     const params = new URLSearchParams(location.search);
     const slug = params.get('gift');
-    const MAX_MB = 80;
+    const MAX_MB = 95;
 
     function renderMissing(message) {
       app.innerHTML = `
@@ -129,7 +129,7 @@
         const media = await GiftStore.listMedia(slug);
         if (!media.length) { grid.innerHTML = '<p class="gu-empty">Nothing added yet — be the first!</p>'; return; }
         grid.innerHTML = media.map((m) => `<div class="gu-tile">${
-          m.type.startsWith('video/') ? `<video src="${m.url}" muted playsinline preload="metadata"></video>` : `<img src="${m.url}" alt="" loading="lazy">`
+          m.type.startsWith('video/') ? `<video src="${m.url}#t=0.001" muted playsinline preload="metadata"></video>` : `<img src="${m.url}" alt="" loading="lazy">`
         }<span class="gu-badge-kind">${m.type.startsWith('video/') ? '🎬' : '🖼'}</span></div>`).join('');
       } catch (e) {
         grid.innerHTML = `<p class="gu-empty" style="color:#ff7b7b">Could not load what's already here: ${escapeHtml(e.message)}</p>`;
@@ -137,20 +137,21 @@
     }
 
     async function handleFiles(fileList) {
-      const files = [...fileList].filter(Boolean);
+      const files = [...fileList].filter(Boolean).map((f) => (GiftStore.isVisual(f) ? GiftStore.mediaFile(f) : f));
       if (!files.length) return;
       const err = $('#gu-error'), prog = $('#gu-progress'), progText = $('#gu-progress-text');
       err.hidden = true;
 
       // Validate before uploading anything
       const errors = [];
-      files.forEach((f) => {
-        if (!/^(image|video)\//.test(f.type)) errors.push(`"${f.name}" isn't a photo or video.`);
-        else if (f.size > MAX_MB * 1024 * 1024) errors.push(`"${f.name}" is over ${MAX_MB} MB.`);
-      });
+      const ok = [];
+      for (const f of files) {
+        if (!GiftStore.isVisual(f)) { errors.push(`"${f.name}" isn't a photo or video.`); continue; }
+        if (f.size > MAX_MB * 1024 * 1024) { errors.push(`"${f.name}" is over ${MAX_MB} MB.`); continue; }
+        const { error } = await GiftStore.checkVideo(f); // a video nobody could play is refused now, with a reason
+        if (error) errors.push(error); else ok.push(f);
+      }
       if (errors.length) { err.textContent = errors.join(' '); err.hidden = false; }
-
-      const ok = files.filter((f) => /^(image|video)\//.test(f.type) && f.size <= MAX_MB * 1024 * 1024);
       if (!ok.length) return;
 
       prog.classList.add('is-on');

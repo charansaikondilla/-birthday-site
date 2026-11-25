@@ -1902,3 +1902,9 @@ textarea.inline-edit-field { resize: vertical; min-height: 4.5em; line-height: 1
   .nf-menu { max-height: calc(100vh - 84px); overflow-y: auto; }
   .nf-menu::before { display: none; }
 }
+
+/* ---------- Player: loading a video, "tap for sound", short notes ---------- */
+.player.is-buffering::after { content: ""; position: absolute; left: 50%; top: 50%; width: 54px; height: 54px; margin: -27px 0 0 -27px; border: 4px solid rgba(255, 255, 255, .22); border-top-color: var(--red); border-radius: 50%; animation: gift-spin .9s linear infinite; pointer-events: none; z-index: 3; }
+.sound-hint { position: absolute; z-index: 6; left: 50%; bottom: clamp(96px, 18vh, 150px); transform: translateX(-50%); padding: 11px 20px; border: 0; border-radius: 999px; background: rgba(255, 255, 255, .95); color: #111; font: inherit; font-size: 15px; font-weight: 700; white-space: nowrap; cursor: pointer; box-shadow: 0 6px 24px rgba(0, 0, 0, .5); }
+.player-note { position: absolute; z-index: 5; left: 50%; top: clamp(64px, 12vh, 96px); transform: translateX(-50%); margin: 0; max-width: min(90vw, 440px); padding: 10px 18px; border-radius: 8px; background: rgba(20, 20, 20, .92); color: #fff; font-size: 14px; line-height: 1.4; text-align: center; pointer-events: none; }
+.sound-hint[hidden], .player-note[hidden] { display: none; }

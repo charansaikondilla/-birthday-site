@@ -34,6 +34,50 @@ const json = (data, status = 200) => new Response(JSON.stringify(data), { status
 const bad = (message, status = 400) => json({ error: message }, status);
 const uid = () => crypto.randomUUID();
 const cleanSegment = (s, fallback) => String(s || fallback).replace(/[^\w.\-]+/g, '_').slice(0, 120);
+// A stored file keeps its ending (".mov", ".mp4"…) however long its name is: the site tells videos
+// from photos by it. No ending → one that fits its type.
+const TYPE_EXT = { 'video/mp4': 'mp4', 'video/quicktime': 'mov', 'video/webm': 'webm', 'video/3gpp': '3gp', 'video/x-matroska': 'mkv', 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp', 'image/gif': 'gif', 'audio/mpeg': 'mp3', 'audio/mp4': 'm4a' };
+function fileSegment(name, contentType) {
+  const clean = String(name || 'file').replace(/[^\w.\-]+/g, '_');
+  const m = /^(.*)\.([A-Za-z0-9]{2,5})$/.exec(clean);
+  const type = String(contentType || '').split(';')[0].trim().toLowerCase();
+  const ext = m ? m[2] : TYPE_EXT[type] || (type.startsWith('video/') ? 'mp4' : '');
+  return `${(m ? m[1] : clean).slice(0, 80) || 'file'}${ext ? `.${ext}` : ''}`;
+}
+const MEDIA_PIECE = 2 * 1024 * 1024; // videos go out in pieces: a paused one never keeps a connection open
+// GET /m/<key>  -> a stored photo / video / song, in pieces when asked (phones and seeking need that).
+// iPhone .mov files are sent as MP4 (same thing inside), which every browser accepts.
+async function serveMedia(request, env, key) {
+  const head = request.method === 'HEAD';
+  const m = /^bytes=(\d*)-(\d*)$/.exec(request.headers.get('Range') || '');
+  const wanted = !head && m && (m[1] || m[2]) ? m : null;
+  let range;
+  if (wanted) {
+    const n = wanted[2] ? Number(wanted[2]) : Infinity;
+    range = wanted[1]
+      ? { offset: Number(wanted[1]), length: Math.min(MEDIA_PIECE, Math.max(1, n - Number(wanted[1]) + 1)) }
+      : { suffix: n };
+  }
+  let obj;
+  try { obj = head ? await env.GIFT_MEDIA.head(key) : await env.GIFT_MEDIA.get(key, range ? { range } : undefined); }
+  catch { return new Response(null, { status: 416, headers: { 'Access-Control-Allow-Origin': '*' } }); }
+  if (!obj) return bad('not found', 404);
+  let type = String((obj.httpMetadata && obj.httpMetadata.contentType) || '').toLowerCase();
+  if (!/^(image|video|audio)\//.test(type)) return bad('not found', 404);
+  if (type.startsWith('video/quicktime') || type.startsWith('video/x-m4v')) type = 'video/mp4';
+  const headers = {
+    'Content-Type': type, 'Accept-Ranges': 'bytes', ETag: obj.httpEtag,
+    // Videos stay out of the browser's disk cache: two players of one video would wait for each other there.
+    'Cache-Control': type.startsWith('image/') ? 'public, max-age=31536000, immutable' : 'no-store',
+    'Access-Control-Allow-Origin': '*', 'Cross-Origin-Resource-Policy': 'cross-origin',
+    'X-Content-Type-Options': 'nosniff', 'Content-Security-Policy': "default-src 'none'; sandbox",
+  };
+  if (!wanted) return new Response(head ? null : obj.body, { status: 200, headers: { ...headers, 'Content-Length': String(obj.size) } });
+  const from = wanted[1] ? Number(wanted[1]) : Math.max(0, obj.size - Number(wanted[2]));
+  const to = wanted[1] ? Math.min(obj.size - 1, from + range.length - 1) : obj.size - 1;
+  if (from > to) return new Response(null, { status: 416, headers: { ...headers, 'Content-Range': `bytes */${obj.size}` } });
+  return new Response(obj.body, { status: 206, headers: { ...headers, 'Content-Length': String(to - from + 1), 'Content-Range': `bytes ${from}-${to}/${obj.size}` } });
+}
 const isMedia = (contentType, allowAudio = false) => (allowAudio ? /^(image|video|audio)\// : /^(image|video)\//).test(contentType || '');
 const MAX_CONFIG_BYTES = 256 * 1024;
 const MAX_FAILED_TRIES = 8;          // wrong passwords allowed per gift…
@@ -234,6 +278,8 @@ export default {
     const route = (method, ...segs) => M === method && parts.length === segs.length && segs.every((s, i) => s === '*' || s === parts[i]);
 
     try {
+      if ((M === 'GET' || M === 'HEAD') && parts[0] === 'm' && parts.length > 2) return await serveMedia(request, env, parts.slice(1).map(decodeURIComponent).join('/'));
+
       await ensureSchema(env);
 
       // GET /version  -> what this Worker can do (the site adapts to an older Worker).
@@ -366,7 +412,7 @@ export default {
         if (!(await getGiftRow(env, slug))) return bad('this gift link was not found — it may have expired', 404);
         const contentType = request.headers.get('Content-Type') || '';
         if (!isMedia(contentType)) return bad('only photos and videos are accepted');
-        const filename = cleanSegment(url.searchParams.get('filename'), 'upload');
+        const filename = fileSegment(url.searchParams.get('filename') || 'upload', contentType);
         const key = `${slug}/${Date.now()}-${uid().slice(0, 8)}-${filename}`;
         await env.GIFT_MEDIA.put(key, request.body, { httpMetadata: { contentType } });
         const id = uid();
@@ -409,7 +455,7 @@ export default {
         if (o.error) return o.error;
         const contentType = request.headers.get('Content-Type') || '';
         if (!isMedia(contentType, true)) return bad('only photos, videos and songs are accepted');
-        const key = `${o.row.slug}/site/${Date.now()}-${uid().slice(0, 8)}-${cleanSegment(url.searchParams.get('filename'), 'file')}`;
+        const key = `${o.row.slug}/site/${Date.now()}-${uid().slice(0, 8)}-${fileSegment(url.searchParams.get('filename'), contentType)}`;
         await env.GIFT_MEDIA.put(key, request.body, { httpMetadata: { contentType } });
         return json({ url: `${env.R2_PUBLIC_URL}/${key}`, path: key, type: contentType }, 201);
       }
@@ -431,7 +477,7 @@ export default {
         const contentType = request.headers.get('Content-Type') || '';
         if (!isMedia(contentType)) return bad('only photos and videos are accepted');
         const folder = cleanSegment(url.searchParams.get('folder'), 'site');
-        const key = `${folder}/${Date.now()}-${uid().slice(0, 8)}-${cleanSegment(url.searchParams.get('filename'), 'upload')}`;
+        const key = `${folder}/${Date.now()}-${uid().slice(0, 8)}-${fileSegment(url.searchParams.get('filename') || 'upload', contentType)}`;
         await env.GIFT_MEDIA.put(key, request.body, { httpMetadata: { contentType } });
         return json({ url: `${env.R2_PUBLIC_URL}/${key}`, path: key, type: contentType }, 201);
       }

@@ -124,12 +124,15 @@ const fullTitle = () => `${cfg.title} ${cfg.name}`.trim();
 /* ---------- Media (pictures OR videos, from assets/ or uploaded) ---------- */
 // Uploaded files are referenced as "idb:<id>" and live in IndexedDB; `media` maps them to object URLs.
 const media = new Map();
-const VIDEO_EXT = /\.(mp4|webm|ogg|ogv|mov|m4v)(\?|#|$)/i;
+const VISUAL_ACCEPT = 'image/*,video/*,.mov,.mp4,.m4v,.3gp,.mkv';
+const VIDEO_EXT = /\.(mp4|webm|ogg|ogv|mov|qt|quick|m4v|3gp|3g2|mkv|avi|mpe?g|mts|m2ts|wmv)(\?|#|$)/i;
+const cloudTypes = new Map(); // url -> "video/mp4"… for cloud files whose type is known (friends' uploads)
 const isUpload = (ref) => typeof ref === 'string' && ref.startsWith('idb:');
 function isVideo(ref) {
   if (!ref) return false;
   if (isUpload(ref)) return (media.get(ref)?.type || '').startsWith('video/');
-  return VIDEO_EXT.test(ref);
+  const known = cloudTypes.get(ref);
+  return known ? known.startsWith('video/') : VIDEO_EXT.test(ref);
 }
 function srcOf(ref) {
   if (!ref) return '';
@@ -139,27 +142,172 @@ function srcOf(ref) {
 // Returns <img>, <video> or a placeholder <div> for an empty slot.
 // opts.player = a video that plays once with sound (the slideshow); otherwise it is a silent looping tile.
 function mediaEl(ref, opts = {}) {
-  const src = srcOf(ref);
-  if (!src) { const d = document.createElement('div'); d.className = 'ph'; return d; }
-  if (isVideo(ref)) {
-    const v = document.createElement('video');
-    v.src = src;
-    v.playsInline = true; v.setAttribute('playsinline', '');
-    v.preload = opts.player ? 'auto' : 'metadata';
-    v.disablePictureInPicture = true;
-    if (!opts.player) { v.muted = true; v.loop = true; v.autoplay = true; v.play().catch(() => {}); }
-    return v;
-  }
+  const urls = sourcesOf(ref);
+  if (!urls[0]) { const d = document.createElement('div'); d.className = 'ph'; return d; }
+  return isVideo(ref) ? videoEl(urls, opts) : imgEl(ref, urls, opts);
+}
+// Where a cloud file can be loaded from, best place first. Videos come through our own server (it
+// sends the right type, has no speed limit and allows seeking); if one place fails the other is tried.
+const R2_URL = /^https:\/\/pub-[0-9a-f]+\.r2\.dev\/(.+)$/i;
+function sourcesOf(ref) {
+  const src = srcOf(ref), m = R2_URL.exec(src), C = window.CLOUD || {};
+  if (!m || !C.WORKER_URL || Number(C.WORKER_VERSION) === 1) return [src];
+  const ours = `${C.WORKER_URL}/m/${m[1]}`;
+  return isVideo(ref) ? [ours, src] : [src, ours];
+}
+const APPLE = /iPhone|iPad|iPod|Macintosh/.test(navigator.userAgent) && !/Chrome|Firefox/.test(navigator.userAgent);
+function videoEl(urls, opts) {
+  const v = document.createElement('video');
+  let k = 0;
+  // On Apple devices tiles ask for a tiny bit in, so they show the first picture instead of a black
+  // square. Elsewhere the address stays the same, so the background and the player share one download.
+  const at = (u) => (!APPLE || opts.player || /^(blob|data):/.test(u) ? u : `${u}#t=0.001`);
+  v.playsInline = true; v.setAttribute('playsinline', '');
+  v.disablePictureInPicture = true;
+  v.preload = opts.player ? 'none' : 'metadata';
+  const load = (n) => { // the same video from another place, from where it was
+    const t = v.currentTime || 0;
+    if (t > 0.5) v.addEventListener('loadedmetadata', () => { try { v.currentTime = t; } catch (e) { /* plays from the start */ } }, { once: true });
+    v.src = at(urls[n]);
+    if (opts.player) { if (slides.running && slides.imgs[slides.index] === v) playVideo(v); } else tileSync(v);
+  };
+  v.addEventListener('error', () => {
+    if (++k < urls.length) { load(k); return; }
+    v._failed = true;
+    if (opts.player) videoFailed(v);
+  });
+  // No data at all is arriving: try the other place once (errors still count from there).
+  v._other = () => { if (v._swapped || k + 1 >= urls.length) return; v._swapped = true; load(++k); };
+  if (opts.player) v.addEventListener('ended', () => { if (slides.running && slides.imgs[slides.index] === v) advance(); });
+  else { v._tile = true; v.muted = true; v.defaultMuted = true; v.loop = true; }
+  v.src = at(urls[0]);
+  if (!opts.player) { if (tileIO) tileIO.observe(v); else { v._seen = true; v.autoplay = true; } }
+  return v;
+}
+function imgEl(ref, urls, opts) {
   const img = document.createElement('img');
-  img.src = src; img.alt = '';
+  let k = 0;
+  img.addEventListener('error', () => {
+    if (++k < urls.length) { img.src = urls[k]; return; }
+    if (!R2_URL.test(urls[0]) && !isUpload(ref)) return;
+    // Not a picture after all? A video saved earlier without its ".mp4" ending looked like one.
+    const v = videoEl([urls[urls.length - 1], urls[0]], opts);
+    v.preload = 'metadata';
+    v.addEventListener('loadedmetadata', () => {
+      if (!v.videoWidth || !img.parentNode) return;
+      cloudTypes.set(ref, 'video/mp4');
+      v.className = img.className;
+      v.style.cssText = img.style.cssText;
+      img.replaceWith(v);
+      const i = slides.imgs.indexOf(img);
+      if (i >= 0) { slides.imgs[i] = v; if (i === slides.index && slides.running) { syncMusic(); playVideo(v); } }
+    }, { once: true });
+  });
+  img.src = urls[0]; img.alt = '';
   if (opts.lazy) img.loading = 'lazy';
   return img;
 }
-// Plays a video with sound; falls back to muted if the browser blocks sound before a tap.
+// Silent looping videos (background, cards, previews) play only while they can be seen: a phone
+// can't decode many at once, and hidden ones were using up the connection.
+function tileSync(v) {
+  if (!v._tile) return;
+  const on = v._seen && v.isConnected && !document.hidden && (!v.parentElement.classList.contains('hero') || v.classList.contains('is-on'));
+  if (on) { if (v.paused && !(v.ended && !v.loop)) { v.muted = true; v.play().catch(() => { /* battery saver: plays after the next tap */ }); } }
+  else if (!v.paused) v.pause();
+}
+const tileIO = 'IntersectionObserver' in window ? new IntersectionObserver((entries) => entries.forEach((e) => {
+  const v = e.target;
+  v._seen = e.isIntersecting;
+  if (v._seen) v._was = true;
+  tileSync(v);
+  if (!v._seen && v._was && !v.isConnected) tileIO.unobserve(v); // removed from the page
+})) : null;
+const syncTiles = () => document.querySelectorAll('video').forEach(tileSync);
+document.addEventListener('visibilitychange', syncTiles);
+['pointerup', 'touchend'].forEach((ev) => document.addEventListener(ev, syncTiles, { passive: true }));
+
+// Plays a slide video with sound. A browser that only allows silent video before a tap gets it
+// silent plus a "Tap for sound" button; one that blocks it altogether waits on the Play button.
 function playVideo(v) {
-  v.muted = typeof sound !== 'undefined' && sound.muted;
+  v.muted = sound.muted;
+  v._autoMuted = false;
+  soundHint(false);
   const p = v.play();
-  if (p && p.catch) p.catch(() => { v.muted = true; v.play().catch(() => {}); });
+  if (!p || !p.catch) return;
+  const mine = () => slides.running && slides.imgs[slides.index] === v;
+  p.catch((e) => {
+    if (!e || e.name !== 'NotAllowedError' || !mine()) return; // left already, or still loading
+    v.muted = true;
+    v._autoMuted = true;
+    v.play().then(() => { if (mine()) soundHint(true); }, (e2) => { if (e2 && e2.name === 'NotAllowedError' && mine()) togglePause(); });
+  });
+}
+function soundHint(on) {
+  let b = document.getElementById('sound-hint');
+  if (!b) {
+    if (!on) return;
+    b = document.createElement('button');
+    b.type = 'button'; b.id = 'sound-hint'; b.className = 'sound-hint';
+    b.textContent = '🔇 Tap for sound';
+    player.appendChild(b);
+  }
+  b.hidden = !on;
+}
+// The first tap anywhere in the player gives a silently started video its sound back.
+function unmuteAuto() {
+  const v = slides.imgs[slides.index];
+  if (!v || !v._autoMuted) return;
+  v._autoMuted = false;
+  v.muted = sound.muted;
+  soundHint(false);
+}
+let noteTimer = 0;
+function playerNote(text) {
+  let n = document.getElementById('player-note');
+  if (!n) { n = document.createElement('p'); n.id = 'player-note'; n.className = 'player-note'; n.setAttribute('role', 'status'); player.appendChild(n); }
+  n.textContent = text;
+  n.hidden = false;
+  clearTimeout(noteTimer);
+  noteTimer = setTimeout(() => { n.hidden = true; }, 2600);
+}
+// A video that cannot be loaded at all: say so and go on, instead of a black screen.
+function videoFailed(v) {
+  if (player.hidden || !finale.hidden || slides.imgs[slides.index] !== v) return;
+  player.classList.remove('is-buffering');
+  playerNote('This video could not be played on this device.');
+  setTimeout(() => { if (slides.running && slides.imgs[slides.index] === v) advance(); }, 2200);
+}
+
+/* ---------- What Play shows ----------
+   Photos and videos put on the page (background + cards) belong in the player too. They used to
+   stay out of it, so Play kept showing the sample pictures. Once the page has a video of its own,
+   the untouched samples make way for the page's own photos and videos; a slideshow the creator
+   arranged by hand keeps its order and only gains the missing videos. Something the creator takes
+   out of the slideshow stays out (seen), and what leaves the page leaves the player (auto). */
+const OWN_REF = /^(idb:|https?:|blob:|data:)/;
+function syncSlides(c) {
+  const s = c.slides, own = [];
+  const take = (ref) => { if (ref && OWN_REF.test(ref) && !own.includes(ref)) own.push(ref); };
+  c.hero.images.forEach((h) => take(h && h.image));
+  c.rows.forEach((r) => r.items.forEach((it) => { if (isVideo(it.preview)) take(it.preview); take(it.image); }));
+  const auto = (Array.isArray(s.auto) ? s.auto : []).filter((x) => s.images.includes(x));
+  if (!auto.length && !own.some(isVideo)) return false;
+  const seen = new Set(Array.isArray(s.seen) ? s.seen : []);
+  const sample = (x) => config.slides.images.includes(x);
+  const managed = s.images.length > 0 && s.images.every((x) => sample(x) || auto.includes(x));
+  const fresh = own.filter((x) => !seen.has(x) && !s.images.includes(x) && (managed || isVideo(x)));
+  const added = [...fresh];
+  // A replaced photo / video takes the place of the one it replaced.
+  let list = s.images.map((x) => (auto.includes(x) && !own.includes(x) ? fresh.shift() || '' : x)).filter(Boolean);
+  const lost = list.length < s.images.length;
+  if (managed && added.length) list = list.filter((x) => !sample(x));
+  list.push(...fresh);
+  if (!list.length && lost) list = [...config.slides.images];
+  const changed = JSON.stringify(list) !== JSON.stringify(s.images);
+  s.images = list;
+  s.auto = [...auto, ...added].filter((x) => list.includes(x));
+  s.seen = own;
+  return changed;
 }
 
 /* ---------- Storage (IndexedDB: uploaded files + the customised config) ---------- */
@@ -207,7 +355,9 @@ let hadLocalPage = false; // this device has its own customised page (made befor
 function registerBlob(id, blob) {
   const old = media.get(id);
   if (old) URL.revokeObjectURL(old.url);
-  media.set(id, { url: URL.createObjectURL(blob), type: blob.type || '' });
+  // The type comes from the name too (some phones leave it empty); iPhone .mov plays as MP4 everywhere.
+  const type = typeof GiftStore !== 'undefined' ? GiftStore.mediaType(blob) : blob.type || '';
+  media.set(id, { url: URL.createObjectURL(type === blob.type ? blob : new Blob([blob], { type })), type });
 }
 async function loadSaved() {
   try {
@@ -275,6 +425,7 @@ function normalise(c) {
   out.introSound = typeof out.introSound === 'string' ? out.introSound : '';
   out.music = typeof out.music === 'string' ? out.music : '';
   out.autoplay = !!out.autoplay;
+  syncSlides(out);
   return out;
 }
 
@@ -390,7 +541,7 @@ function bindHome() {
   // Editing text/media doesn't block normal navigation — Play and More Info still work
   // while ✎ editing is on (editing the player's own slides needs to reach it, after all).
   $('#play').addEventListener('click', () => openPlayer(0));
-  $('#more').addEventListener('click', () => openModal(fullTitle(), cfg.description, cfg.hero.images[0]?.image || cfg.slides.images[0], 0));
+  $('#more').addEventListener('click', () => openModal(fullTitle(), cfg.description, cfg.hero.images[0]?.image || cfg.slides.images[0], slideIndexOf(cfg.hero.images[0]?.image)));
   $('#bb-replay').addEventListener('click', () => { cycleHero(); typeTitle(); });
   $('#hero-prev').addEventListener('click', () => { heroGo(currentHeroIndex() - 1, -1); restartHeroTimer(); });
   $('#hero-next').addEventListener('click', () => { heroGo(currentHeroIndex() + 1, 1); restartHeroTimer(); });
@@ -443,7 +594,7 @@ function bindHome() {
     const [r, i] = b.dataset.note.split('.').map(Number);
     const item = cfg.rows[r]?.items[i];
     closePops();
-    if (item) openModal(item.title, item.text, item.preview || item.image, slideIndexOf(item.image));
+    if (item) openModal(item.title, item.text, item.preview || item.image, playIndexOf(item));
   });
   $('#nf-account').addEventListener('click', (e) => {
     const b = e.target.closest('[data-act]');
@@ -538,8 +689,36 @@ function renderHero() {
     const el = mediaEl(item.image);
     el.style.setProperty('--dur', `${cfg.hero.interval + 900}ms`);
     if (i === 0) el.classList.add('is-on');
+    if (el.tagName === 'VIDEO') {
+      el.addEventListener('ended', () => { // a background video plays to its end, then the next one slides in
+        if (!el.classList.contains('is-on') || home.hidden) return;
+        if (cfg.hero.autoScroll && hero.children.length > 1 && !ep.spec) { heroGo(currentHeroIndex() + 1, 1); restartHeroTimer(); }
+        else { el.currentTime = 0; el.play().catch(() => {}); }
+      });
+    }
     hero.appendChild(el);
   });
+  heroSync();
+}
+// Only the background that is showing plays; the next one gets ready; the others don't load at all.
+function heroSync() {
+  const els = [...$('#hero').children], on = els.findIndex((el) => el.classList.contains('is-on'));
+  els.forEach((v, i) => {
+    if (v.tagName !== 'VIDEO') return;
+    v.loop = els.length < 2 || !cfg.hero.autoScroll;
+    v.preload = i === on ? 'auto' : i === (on + 1) % els.length ? 'metadata' : 'none';
+    if (i === on && !v._on && v.currentTime > 0) { try { v.currentTime = 0; } catch (e) { /* not loaded yet */ } }
+    v._on = i === on;
+    tileSync(v);
+  });
+}
+// Is the background video still playing (or loading)? Then the timer must not cut it off.
+function heroBusy() {
+  const v = $('#hero').children[currentHeroIndex()];
+  if (!v || v.tagName !== 'VIDEO' || v._failed || v.ended) return false;
+  const now = performance.now();
+  if (v.currentTime !== v._t) { v._t = v.currentTime; v._tAt = now; }
+  return now - (v._tAt || now) < 15000;
 }
 function paintFacts() {
   const f = cfg.facts;
@@ -725,6 +904,8 @@ const motionQuery = window.matchMedia ? matchMedia('(prefers-reduced-motion: red
 const onMotionChange = () => sliderPainters.forEach((p) => p());
 if (motionQuery.addEventListener) motionQuery.addEventListener('change', onMotionChange); else if (motionQuery.addListener) motionQuery.addListener(onMotionChange);
 const slideIndexOf = (src) => Math.max(0, cfg.slides.images.indexOf(src));
+// Where Play starts for a card: its own video / wide picture first, then its tile picture.
+const playIndexOf = (item) => slideIndexOf(item.preview && cfg.slides.images.includes(item.preview) ? item.preview : item.image);
 
 const ICON = {
   play: '<svg viewBox="0 0 24 24"><path d="M7 4l13 8-13 8z"/></svg>',
@@ -818,9 +999,10 @@ function buildCard(item, type, i, at) {
   const first = item.preview || item.image;
   const layers = card.querySelectorAll('.pv-layer');
   const setLayer = (n, ref) => { layers[n].innerHTML = ''; layers[n].appendChild(mediaEl(ref)); };
-  setLayer(0, first);
-  const start = slideIndexOf(item.preview && cfg.slides.images.includes(item.preview) ? item.preview : item.image);
-  const details = () => openModal(item.title, item.text, first, start);
+  const firstIsVideo = isVideo(first);
+  if (!firstIsVideo) setLayer(0, first); // a video is only loaded when someone points at the card
+  const start = playIndexOf(item);
+  const details = () => openModal(item.title, item.text, first, playIndexOf(item));
   // In ✎ edit mode a click anywhere on the card (picture or its title) opens the edit popup.
   poster.addEventListener('click', (e) => {
     if (isEditing()) { e.preventDefault(); editCard(item); return; }
@@ -829,7 +1011,7 @@ function buildCard(item, type, i, at) {
   card.querySelector('.pv-more').addEventListener('click', details);
   // A click anywhere on the hover preview that isn't one of its buttons opens More Info, like Netflix.
   card.querySelector('.preview').addEventListener('click', (e) => { if (!e.target.closest('button')) details(); });
-  card.querySelector('.pv-play').addEventListener('click', () => openPlayer(start));
+  card.querySelector('.pv-play').addEventListener('click', () => openPlayer(playIndexOf(item)));
   card.querySelector('.pv-add').addEventListener('click', (e) => e.currentTarget.classList.toggle('is-added'));
   card.querySelector('.pv-like').addEventListener('click', (e) => e.currentTarget.classList.toggle('is-liked'));
   // Hover: place the preview so it never grows off-screen, and cycle through changing pictures
@@ -839,6 +1021,7 @@ function buildCard(item, type, i, at) {
     const r = card.getBoundingClientRect(), pv = card.querySelector('.preview');
     pv.style.transformOrigin = r.left < 120 ? 'left center' : r.right > innerWidth - 120 ? 'right center' : 'center center';
     clearInterval(cycle);
+    if (firstIsVideo) { setLayer(0, first); return; } // let the video play instead of changing pictures
     if (pics.length < 2) return;
     cycle = setInterval(() => {
       pic = (pic + 1) % pics.length;
@@ -851,7 +1034,8 @@ function buildCard(item, type, i, at) {
   card.addEventListener('mouseleave', () => {
     clearInterval(cycle);
     pic = 0; layer = 0;
-    setLayer(0, first); layers[0].classList.add('is-on'); layers[1].classList.remove('is-on'); layers[1].innerHTML = '';
+    if (firstIsVideo) layers[0].innerHTML = ''; else setLayer(0, first);
+    layers[0].classList.add('is-on'); layers[1].classList.remove('is-on'); layers[1].innerHTML = '';
   });
   if (del) card.appendChild(del);
   return card;
@@ -1111,7 +1295,7 @@ function heroGo(to, dir = 1) {
   } else if (prev) prev.classList.remove('is-on');
   next.classList.remove('is-next', 'is-prev');
   next.classList.add('is-on');
-  if (next.tagName === 'VIDEO') next.play().catch(() => {});
+  heroSync();
   paintHeroFeature(to);
   paintHeroDots(to);
 }
@@ -1128,6 +1312,7 @@ function cycleHero() {
   hero.classList.toggle('is-slide', cfg.hero.effect === 'slide');
   const imgs = [...hero.children];
   imgs.forEach((el, i) => { el.classList.remove('is-prev', 'is-next'); el.classList.toggle('is-on', i === 0); });
+  heroSync();
   paintHeroFeature(0);
   paintHeroDots(0);
   restartHeroTimer();
@@ -1135,7 +1320,7 @@ function cycleHero() {
 function restartHeroTimer() {
   clearInterval(heroTimer);
   if (!cfg.hero.autoScroll || $('#hero').children.length < 2) return;
-  heroTimer = setInterval(() => heroGo(currentHeroIndex() + 1, 1), cfg.hero.interval);
+  heroTimer = setInterval(() => { if (!heroBusy()) heroGo(currentHeroIndex() + 1, 1); }, cfg.hero.interval);
 }
 function typeTitle(done) {
   const title = $('#title'), out = $('#title-text'), text = fullTitle();
@@ -1183,7 +1368,8 @@ function openHome(fromProfiles) {
 }
 
 /* ---------- 4. Player (pictures and videos, one after the other) ---------- */
-const slides = { imgs: [], index: 0, elapsed: 0, start: 0, last: 0, raf: 0, running: false, hideTimer: 0 };
+const slides = { imgs: [], index: 0, elapsed: 0, start: 0, last: 0, vt: -1, vAt: 0, nAt: 0, net: -1, raf: 0, running: false, hideTimer: 0 };
+const VIDEO_WAIT = 30000; // a video that hasn't moved for this long is skipped
 function bindPlayer() {
   $('#back').addEventListener('click', () => openHome(false));
   $('#pause').addEventListener('click', togglePause);
@@ -1206,6 +1392,7 @@ function bindPlayer() {
     if (!isEditing() || e.target.closest('button')) return;
     editFinale();
   });
+  player.addEventListener('click', unmuteAuto, true);
   playerUI.addEventListener('pointermove', showUI);
   $('#replay').addEventListener('click', () => location.reload());
   $('#finale-home').addEventListener('click', () => openHome(false));
@@ -1227,7 +1414,6 @@ function renderPlayer() {
   cfg.slides.images.forEach((src) => {
     const el = mediaEl(src, { player: true });
     el.style.setProperty('--dur', `${cfg.slides.duration + 900}ms`);
-    if (el.tagName === 'VIDEO') el.addEventListener('ended', () => { if (slides.running && slides.imgs[slides.index] === el) advance(); });
     box.appendChild(el);
     slides.imgs.push(el);
   });
@@ -1235,7 +1421,7 @@ function renderPlayer() {
 }
 function slideDur(i) {
   const el = slides.imgs[i];
-  if (el && el.tagName === 'VIDEO' && isFinite(el.duration) && el.duration > 0) return el.duration * 1000;
+  if (el && el.tagName === 'VIDEO') return isFinite(el.duration) && el.duration > 0 ? el.duration * 1000 : Infinity; // still loading
   return cfg.slides.duration;
 }
 function showUI() {
@@ -1256,6 +1442,8 @@ function openPlayer(start = 0) {
   player.classList.remove('is-paused');
   slides.imgs.forEach((el) => { el.classList.remove('is-on', 'is-paused'); if (el.tagName === 'VIDEO') el.pause(); });
   slides.index = -1;
+  // Phones allow sound only for videos touched by a tap: Play is that tap, so it counts for all of them.
+  slides.imgs.forEach((el, i) => { if (i !== start && el.tagName === 'VIDEO' && el.readyState === 0 && !el._failed) el.load(); });
   goTo(start);
   showUI();
   if (isEditing()) showEditHint('Tap the photo or video to change it. Use ‹ › to move between them.');
@@ -1272,14 +1460,24 @@ function goTo(i) {
   const el = slides.imgs[slides.index];
   el.classList.add('is-on');
   slides.elapsed = 0;
-  slides.last = slides.start = performance.now();
+  slides.last = slides.start = slides.vAt = slides.nAt = performance.now();
+  slides.vt = slides.net = -1;
+  player.classList.remove('is-buffering');
+  soundHint(false);
   const paused = player.classList.contains('is-paused');
   // While paused, ‹ › only change the picture — the clock stays stopped until Play.
   // (Re)start the clock for this picture. frame() stops its own loop when it calls
   // advance(), so the loop must be restarted here every time — not only when it was off.
   if (!paused) { cancelAnimationFrame(slides.raf); slides.running = true; slides.raf = requestAnimationFrame(frame); }
   if (paused) el.classList.add('is-paused');
-  if (el.tagName === 'VIDEO') { try { el.currentTime = 0; } catch (e) { /* not loaded yet */ } if (!paused) playVideo(el); }
+  if (el.tagName === 'VIDEO') {
+    el.preload = 'auto';
+    if (el._failed) videoFailed(el);
+    else {
+      if (el.readyState > 0) { try { el.currentTime = 0; } catch (e) { /* not loaded yet */ } }
+      if (!paused) playVideo(el);
+    }
+  }
   syncMusic();
   paintProgress();
 }
@@ -1290,12 +1488,30 @@ function advance() {
 function frame(now) {
   if (!slides.running) return;
   // The browser stops this loop in a background tab: don't count that time, or a picture is skipped.
-  if (slides.last && now - slides.last > 1000) slides.start += now - slides.last;
+  if (slides.last && now - slides.last > 1000) { slides.start += now - slides.last; slides.vAt = now; }
   slides.last = now;
-  slides.elapsed = now - slides.start;
+  const el = slides.imgs[slides.index], next = slides.imgs[slides.index + 1];
+  if (el.tagName === 'VIDEO') {
+    // A video's clock is the video itself: while it loads, the player waits (it used to skip it).
+    slides.elapsed = el.currentTime * 1000;
+    if (el.ended) return advance();
+    if (el.currentTime !== slides.vt) { slides.vt = el.currentTime; slides.vAt = slides.nAt = now; }
+    const still = now - slides.vAt, got = el.buffered.length ? el.buffered.end(el.buffered.length - 1) : 0;
+    const net = got + el.readyState / 10;
+    if (net !== slides.net) { slides.net = net; slides.nAt = now; } // data is arriving, however slowly
+    const quiet = now - Math.max(slides.vAt, slides.nAt);
+    player.classList.toggle('is-buffering', still > 600 && !el._failed);
+    if (still > 1500 && el.paused && !el._failed && now - (el._again || 0) > 1500) { el._again = now; playVideo(el); }
+    if (quiet > 6000 && el.readyState < 3) el._other();
+    if (quiet > VIDEO_WAIT && !el._failed) { playerNote('The video is taking too long to load — moving on.'); return advance(); }
+  } else slides.elapsed = now - slides.start;
   paintProgress();
-  // Videos advance when they end (see renderPlayer); the clock is only a safety net if one cannot play.
-  if (slides.elapsed >= slideDur(slides.index) + (slides.imgs[slides.index].tagName === 'VIDEO' ? 1500 : 0)) return advance();
+  if (el.tagName !== 'VIDEO' && slides.elapsed >= slideDur(slides.index)) return advance();
+  // Get the next video ready once this one no longer needs the connection.
+  if (next && next.tagName === 'VIDEO' && next.preload === 'none') {
+    const left = el.duration - el.currentTime, got = el.buffered && el.buffered.length ? el.buffered.end(el.buffered.length - 1) : 0;
+    if (el.tagName !== 'VIDEO' || left < 6 || (el.duration > 0 && got >= el.duration - 0.5)) next.preload = 'auto';
+  }
   slides.raf = requestAnimationFrame(frame);
 }
 function paintProgress() {
@@ -1312,10 +1528,11 @@ function togglePause() {
     cancelAnimationFrame(slides.raf);
     if (el) { el.classList.add('is-paused'); if (el.tagName === 'VIDEO') el.pause(); }
     clearTimeout(slides.hideTimer);
+    player.classList.remove('is-buffering');
     playerUI.classList.remove('is-hidden');
     musicPause();
   } else {
-    slides.last = performance.now();
+    slides.last = slides.vAt = performance.now();
     slides.start = slides.last - slides.elapsed;
     slides.running = true;
     if (el) { el.classList.remove('is-paused'); if (el.tagName === 'VIDEO') playVideo(el); }
@@ -1328,6 +1545,8 @@ function stopSlides() {
   slides.running = false;
   cancelAnimationFrame(slides.raf);
   clearTimeout(slides.hideTimer);
+  player.classList.remove('is-buffering');
+  soundHint(false);
   slides.imgs.forEach((el) => { if (el.tagName === 'VIDEO') el.pause(); });
   musicStop();
 }
@@ -1464,7 +1683,8 @@ function resetMusic() {
 function setMuted(m) {
   sound.muted = !!m;
   try { localStorage.setItem('nf-muted', m ? '1' : '0'); } catch (e) { /* private mode */ }
-  slides.imgs.forEach((el) => { if (el.tagName === 'VIDEO') el.muted = sound.muted; });
+  slides.imgs.forEach((el) => { if (el.tagName === 'VIDEO') { el.muted = sound.muted; el._autoMuted = false; } });
+  soundHint(false);
   if (sound.muted) musicPause(150); else syncMusic();
   paintSoundBtn();
   paintAccount();
@@ -1610,14 +1830,14 @@ function mediaSlot(path, ref, opts = {}) {
     <div class="cz-thumb" data-thumb="${path}"></div>
     <div class="cz-media-meta">
       <span class="cz-kind">${kind === 'video' ? '🎬 Video' : kind === 'photo' ? '🖼 Photo' : '— empty —'}</span>
-      <label class="cz-btn cz-btn-file">Change<input type="file" accept="image/*,video/*" data-file="${path}" hidden></label>
+      <label class="cz-btn cz-btn-file">Change<input type="file" accept="${VISUAL_ACCEPT}" data-file="${path}" hidden></label>
       ${opts.removable ? `<button type="button" class="cz-btn cz-btn-ghost" data-remove="${opts.removable}">Remove</button>` : ''}
     </div>
   </div>`;
 }
 function mediaList(title, path, list, hint) {
   return `<div class="cz-group"><div class="cz-group-head"><h3>${esc(title)}</h3>
-      <label class="cz-btn cz-btn-file">+ Add photos / videos<input type="file" accept="image/*,video/*" multiple data-add="${path}" hidden></label></div>
+      <label class="cz-btn cz-btn-file">+ Add photos / videos<input type="file" accept="${VISUAL_ACCEPT}" multiple data-add="${path}" hidden></label></div>
     ${hint ? `<p class="cz-hint">${hint}</p>` : ''}
     <div class="cz-grid">${list.map((ref, i) => mediaSlot(`${path}.${i}`, ref, { removable: `${path}.${i}` })).join('') || '<p class="cz-empty">Nothing here yet — add a photo or a video.</p>'}</div></div>`;
 }
@@ -1659,7 +1879,7 @@ function renderTab() {
         <button type="button" class="cz-btn cz-btn-ghost" data-action="del-profile" data-i="${i}">Remove profile</button></div></div>`).join('')}</div>`;
   } else if (czTab === 'hero') {
     html = `<div class="cz-group"><div class="cz-group-head"><h3>Big pictures behind the title</h3>
-        <label class="cz-btn cz-btn-file">+ Add photo / video<input type="file" accept="image/*,video/*" multiple data-add-hero hidden></label></div>
+        <label class="cz-btn cz-btn-file">+ Add photo / video<input type="file" accept="${VISUAL_ACCEPT}" multiple data-add-hero hidden></label></div>
       <p class="cz-hint">Wide pictures or short videos, ~1600×900. They cross-fade with a slow zoom, Netflix-style — give one a name and it fades in with it while that picture is showing.</p>
       <div class="cz-items">${d.hero.images.map((item, i) => `<div class="cz-item">
         ${mediaSlot(`hero.images.${i}.image`, item.image, { removable: `hero.images.${i}` })}
@@ -1700,7 +1920,7 @@ function renderTab() {
             <button type="button" class="cz-btn cz-btn-ghost cz-danger" data-action="del-item" data-r="${r}" data-i="${i}">Remove</button>
           </div>
         </div></details>`).join('')}</div>
-      <label class="cz-btn cz-btn-file cz-add-items">+ Add photos / videos to this row<input type="file" accept="image/*,video/*" multiple data-add-items="${r}" hidden></label>
+      <label class="cz-btn cz-btn-file cz-add-items">+ Add photos / videos to this row<input type="file" accept="${VISUAL_ACCEPT}" multiple data-add-items="${r}" hidden></label>
     </div>`).join('') +
       `<div class="cz-group"><button type="button" class="cz-btn" data-action="add-row">+ Add a new row</button></div>`;
   } else if (czTab === 'player') {
@@ -1767,47 +1987,51 @@ czBody.addEventListener('change', (e) => {
 });
 
 /* -- file pickers -- */
-const MAX_MB = 60;
-function acceptFile(file) {
+const MAX_MB = 95;
+async function acceptFile(file) {
   if (!file) return null;
-  const okType = /^(image|video)\//.test(file.type);
-  if (!okType) { status(`"${file.name}" is not a picture or a video.`, 'error'); return null; }
+  if (!GiftStore.isVisual(file)) { status(`"${file.name}" is not a picture or a video.`, 'error'); return null; }
   if (file.size > MAX_MB * 1024 * 1024) { status(`"${file.name}" is bigger than ${MAX_MB} MB — please use a smaller file.`, 'error'); return null; }
+  file = GiftStore.mediaFile(file);
+  const { error } = await GiftStore.checkVideo(file);
+  if (error) { status(error, 'error'); return null; }
   const id = uid();
   pending.set(id, file);
   registerBlob(id, file);
   return id;
 }
-czBody.addEventListener('change', (e) => {
+czBody.addEventListener('change', async (e) => {
   const el = e.target;
   if (el.type !== 'file' || !draft) return; // guard: the panel may have been closed already
   const files = [...(el.files || [])];
   if (!files.length) return;
+  if (el.hasAttribute('data-import')) { importBundle(files[0]); el.value = ''; return; }
+  const forDraft = draft, ids = [];
+  el.value = '';
+  for (const f of files) ids.push(await acceptFile(f)); // null = refused (the reason is shown)
+  if (draft !== forDraft) return;                       // the panel was closed meanwhile
+  const added = files.map((file, n) => ({ file, id: ids[n] })).filter((x) => x.id);
+  if (!added.length) return;
+  const note = (text) => { if (added.length === files.length) status(text); };
   if (el.dataset.file) {                       // replace one slot
-    const id = acceptFile(files[0]);
+    const id = added[0].id;
     if (id) { setPath(draft, el.dataset.file, id); renderTab(); status('Changed — press Save & apply to see it on the site.'); }
   } else if (el.dataset.add) {                 // append to a media list
     const list = getPath(draft, el.dataset.add) || [];
-    files.forEach((f) => { const id = acceptFile(f); if (id) list.push(id); });
+    added.forEach((x) => list.push(x.id));
     setPath(draft, el.dataset.add, list);
     renderTab();
-    status(`${files.length} file${files.length > 1 ? 's' : ''} added.`);
+    note(`${added.length} file${added.length > 1 ? 's' : ''} added.`);
   } else if (el.dataset.addItems != null) {    // new tiles in a row
     const row = draft.rows[Number(el.dataset.addItems)];
-    files.forEach((f) => {
-      const id = acceptFile(f);
-      if (id) row.items.push({ image: id, title: f.name.replace(/\.[^.]+$/, '').replace(/[-_]+/g, ' '), text: '', tags: [] });
-    });
+    added.forEach(({ id, file }) => row.items.push({ image: id, title: file.name.replace(/\.[^.]+$/, '').replace(/[-_]+/g, ' '), text: '', tags: [] }));
     renderTab();
-    status(`${files.length} tile${files.length > 1 ? 's' : ''} added — edit the titles below.`);
+    note(`${added.length} tile${added.length > 1 ? 's' : ''} added — edit the titles below.`);
   } else if (el.hasAttribute('data-add-hero')) { // new hero background(s)
-    files.forEach((f) => { const id = acceptFile(f); if (id) draft.hero.images.push({ image: id, title: '' }); });
+    added.forEach(({ id }) => draft.hero.images.push({ image: id, title: '' }));
     renderTab();
-    status(`${files.length} added to the hero — give ${files.length > 1 ? 'them' : 'it'} a name below if you'd like.`);
-  } else if (el.hasAttribute('data-import')) {
-    importBundle(files[0]);
+    note(`${added.length} added to the hero — give ${added.length > 1 ? 'them' : 'it'} a name below if you'd like.`);
   }
-  el.value = '';
 });
 
 /* -- buttons -- */
@@ -1861,7 +2085,7 @@ async function applyDraft() {
         if (ref !== id) urlMap.set(id, ref);
         continue;
       }
-      if (cloudOn()) {
+      if (cloudOn() && GiftStore.Auth && GiftStore.Auth.isSignedIn()) { // the cloud only takes files from signed-in people
         try { const up = await GiftStore.cloudUploadMedia(blob, 'site'); if (up) { urlMap.set(id, up.url); continue; } }
         catch (e) { cloudFailures++; console.warn('Cloud upload failed, saving this one to the browser instead:', e); }
       }
@@ -1970,6 +2194,7 @@ cz.addEventListener('click', (e) => { if (e.target === cz) closePanel(); });
 const isEditing = () => document.body.classList.contains('edit-mode');
 // Saves cfg. Resolves true when it was stored, false when this browser can't keep it.
 function persistCfgNow() {
+  if (syncSlides(cfg)) { if (player.hidden) renderPlayer(); else rebuildPlayerAt(slides.index); } // Play shows what is on the page
   // The creator editing a gift: save to HER link (the cloud), never to this browser's own page.
   if (giftCtx && giftCtx.owner) {
     return GiftStore.saveGiftConfig(giftCtx.slug, cfg).then(() => true, (e) => { console.warn('Could not save that change to the gift:', e); return false; });
@@ -1982,12 +2207,17 @@ function persistCfgNow() {
 // A song / sound file? (Some systems leave file.type empty, so the extension counts too.)
 const isAudioFile = (file) => /^audio\//.test(file.type) || (!file.type && /\.(mp3|m4a|aac|wav|ogg|oga|opus|flac)$/i.test(file.name));
 async function resolveUploadRef(file, opts = {}) {
-  if (opts.audio ? !isAudioFile(file) : !/^(image|video)\//.test(file.type)) throw new Error(`"${file.name}" isn't ${opts.audio ? 'a song / sound file' : 'a photo or a video'}.`);
+  if (opts.audio ? !isAudioFile(file) : !GiftStore.isVisual(file)) throw new Error(`"${file.name}" isn't ${opts.audio ? 'a song / sound file' : 'a photo or a video'}.`);
+  if (!opts.audio) {
+    file = GiftStore.mediaFile(file); // right type + a name that ends in .mp4 / .jpg…
+    const { error } = await GiftStore.checkVideo(file);
+    if (error) throw new Error(error);
+  }
   if (file.size > MAX_MB * 1024 * 1024) throw new Error(`"${file.name}" is bigger than ${MAX_MB} MB — please use a smaller file.`);
   // The creator editing a gift: the file goes to HER gift (photos, videos and songs), so she sees it too.
   if (giftCtx && giftCtx.owner) {
     let timer = 0;
-    const limit = Math.max(60000, (file.size / 100000) * 1000);
+    const limit = Math.max(90000, (file.size / 40000) * 1000); // a slow phone connection still finishes
     try {
       const up = await Promise.race([
         GiftStore.uploadGiftAsset(giftCtx.slug, file),
@@ -2000,9 +2230,9 @@ async function resolveUploadRef(file, opts = {}) {
   // Songs stay in this browser: the general cloud upload only accepts photos and videos.
   // Not signed in → the cloud would refuse, so don't even ask.
   else if (cloudOn() && !opts.audio && GiftStore.Auth && GiftStore.Auth.isSignedIn()) {
-    // Never wait forever on a stalled connection: allow ~100 KB/s (at least 45 s), then
+    // Never wait forever on a stalled connection: allow ~40 KB/s (at least 45 s), then
     // keep the file in this browser instead so the save still finishes.
-    const limit = Math.max(45000, (file.size / 100000) * 1000);
+    const limit = Math.max(45000, (file.size / 40000) * 1000);
     let timer = 0;
     try {
       const up = await Promise.race([
@@ -2024,7 +2254,7 @@ async function resolveUploadRef(file, opts = {}) {
 // straight from a click, or the browser refuses to open the chooser.
 function pickFiles(multiple, onRefs) {
   const input = document.createElement('input');
-  input.type = 'file'; input.accept = 'image/*,video/*'; input.multiple = !!multiple; input.hidden = true;
+  input.type = 'file'; input.accept = VISUAL_ACCEPT; input.multiple = !!multiple; input.hidden = true;
   document.body.appendChild(input);
   input.addEventListener('cancel', () => input.remove());
   input.addEventListener('change', async () => {
@@ -2317,7 +2547,7 @@ function epMediaHTML(m, i) {
           <button type="button" class="ep-btn ep-ghost" data-revert="${i}" hidden>Undo</button>
         </div>
         ${m.hint ? `<p class="ep-hint">${esc(m.hint)}</p>` : ''}
-        <input type="file" accept="${audio ? 'audio/*,.mp3,.m4a,.aac,.wav,.ogg' : 'image/*,video/*'}" data-file="${i}" hidden>
+        <input type="file" accept="${audio ? 'audio/*,.mp3,.m4a,.aac,.wav,.ogg' : VISUAL_ACCEPT}" data-file="${i}" hidden>
       </div>
     </div>`;
 }
@@ -2349,7 +2579,7 @@ function epPaintMedia(i) {
   }
   let node, text;
   if (st.file) {
-    const vid = st.file.type.startsWith('video/');
+    const vid = GiftStore.mediaType(st.file).startsWith('video/');
     node = document.createElement(vid ? 'video' : 'img');
     node.src = st.url;
     if (vid) { node.muted = true; node.loop = true; node.autoplay = true; node.playsInline = true; node.setAttribute('playsinline', ''); node.play().catch(() => {}); }
@@ -2368,12 +2598,13 @@ function epPaintMedia(i) {
 function epSetFile(i, file) {
   if (!ep.spec || ep.busy || !ep.media[i]) return;
   const audio = ep.spec.media[i].kind === 'audio';
-  if (audio ? !isAudioFile(file) : !/^(image|video)\//.test(file.type)) {
+  if (audio ? !isAudioFile(file) : !GiftStore.isVisual(file)) {
     epMsg(`"${file.name}" isn't ${audio ? 'a song / sound file' : 'a photo or a video'} — please pick another file.`, true);
     return;
   }
   if (file.size > MAX_MB * 1024 * 1024) { epMsg(`"${file.name}" is bigger than ${MAX_MB} MB — please pick a smaller file.`, true); return; }
   const st = ep.media[i];
+  if (!audio) file = GiftStore.mediaFile(file);
   if (st.url) URL.revokeObjectURL(st.url);
   st.file = file;
   st.url = URL.createObjectURL(file);
@@ -2381,6 +2612,12 @@ function epSetFile(i, file) {
   epDirty();
   epMsg('');
   epPaintMedia(i);
+  // Tell them now — not after sharing — if a video can't be played.
+  if (!audio) GiftStore.checkVideo(file).then(({ error, warn }) => {
+    if (!ep.spec || ep.media[i] !== st || st.file !== file || !(error || warn)) return;
+    if (error) { URL.revokeObjectURL(st.url); Object.assign(st, { file: null, url: '' }); epPaintMedia(i); }
+    epMsg(error || warn, !!error);
+  });
 }
 function epFieldHTML(f) {
   const id = `ep-f-${f.key}`;
@@ -2523,7 +2760,7 @@ function showHeroAt(i) {
   if (!imgs.length) return;
   i = Math.max(0, Math.min(i, imgs.length - 1));
   imgs.forEach((el, k) => { el.classList.remove('is-prev', 'is-next'); el.classList.toggle('is-on', k === i); });
-  if (imgs[i].tagName === 'VIDEO') imgs[i].play().catch(() => {});
+  heroSync();
   paintHeroFeature(i);
   paintHeroDots(i);
 }
@@ -2555,14 +2792,14 @@ function replaceSlide(index, ref) {
   if (oldEl.tagName === 'VIDEO') oldEl.pause();
   const newEl = mediaEl(ref, { player: true });
   newEl.style.setProperty('--dur', `${cfg.slides.duration + 900}ms`);
-  if (newEl.tagName === 'VIDEO') newEl.addEventListener('ended', () => { if (slides.running && slides.imgs[index] === newEl) advance(); });
   if (wasOn) newEl.classList.add('is-on');
   if (wasPaused) newEl.classList.add('is-paused');
   oldEl.parentNode.replaceChild(newEl, oldEl);
   slides.imgs[index] = newEl;
   // A freshly swapped-in slide gets a full run of its own time rather than the leftovers.
-  if (wasOn) { slides.elapsed = 0; slides.start = performance.now(); paintProgress(); }
-  if (wasOn && newEl.tagName === 'VIDEO' && !wasPaused) playVideo(newEl);
+  if (wasOn) { slides.elapsed = 0; slides.start = slides.vAt = performance.now(); slides.vt = -1; paintProgress(); }
+  if (wasOn && newEl.tagName === 'VIDEO') { newEl.preload = 'auto'; if (!wasPaused) playVideo(newEl); }
+  if (wasOn) syncMusic();
 }
 // The player's text bits (title, time, finale) — cheap to refresh without touching the slides.
 function renderPlayerText() {
@@ -3095,6 +3332,7 @@ function mergeNewContributions(media) {
   cfg.giftSeen = media.map((m) => m.id);
 }
 function applyGift(gift, media) {
+  media.forEach((m) => { if (m.url && m.type) cloudTypes.set(m.url, m.type); });
   if (gift.config && typeof gift.config === 'object') {
     cfg = normalise(gift.config);
     mergeNewContributions(media);
