@@ -7,7 +7,7 @@ compatibility_date = "2024-11-01"
 [[d1_databases]]
 binding = "DB"
 database_name = "birthday-gifts"
-database_id = "dfe1b967-21ff-4401-8d87-f45a6d8bd8f6"
+database_id = "f5a58bce-1996-4cff-a5cb-7dc7ae8fb541"
 
 [[r2_buckets]]
 binding = "GIFT_MEDIA"
@@ -16,7 +16,7 @@ bucket_name = "gift-media"
 [vars]
 # The public URL your R2 bucket serves files from (its "Public Development URL",
 # or your own custom domain once you add one) — see worker/README.md step 4.
-R2_PUBLIC_URL = "https://pub-cd8f27e339e740558e1cc8f3ba3a9b89.r2.dev"
+R2_PUBLIC_URL = "https://pub-7d03a7f4e9954cd89f9777c1dfe0429f.r2.dev"
 # Keep this the same as TRIAL_DAYS in cloud-config.js.
 TRIAL_DAYS = "7"
 # Google Sign-In OAuth Client ID (from Google Cloud Console — this is public,
